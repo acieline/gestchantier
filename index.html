@@ -10,9 +10,6 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'Segoe UI',system-ui,sans-serif;background:#f1f5f9;}
-::-webkit-scrollbar{width:6px;height:6px;}
-::-webkit-scrollbar-track{background:#f1f5f9;}
-::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:3px;}
 </style>
 </head>
 <body>
@@ -499,122 +496,15 @@ function Factures({data,setData}){
 
 // ── APP ───────────────────────────────────────────────────────────────────────
 
-// CLIENTS
-function Clients({data,setData}){
-  const [showForm,setShowForm]=useState(false);
-  const [selected,setSelected]=useState(null);
-  const [form,setForm]=useState({nom:'',entreprise:'',email:'',tel:'',adresse:'',notes:''});
-  const add=()=>{if(!form.nom.trim())return;setData(d=>({...d,clients:[...d.clients,{...form,id:Date.now()}]}));setForm({nom:'',entreprise:'',email:'',tel:'',adresse:'',notes:''});setShowForm(false);};
-  const del=(id)=>setData(d=>({...d,clients:d.clients.filter(c=>c.id!==id)}));
-  const getHisto=(c)=>({devs:data.devis.filter(d=>d.client===c.nom),facs:data.factures.filter(f=>f.client===c.nom),chans:data.chantiers.filter(ch=>ch.client===c.nom)});
-  const inp2={width:'100%',padding:'8px 10px',borderRadius:8,border:'1px solid #e2e8f0',fontSize:14,color:'#1e293b',boxSizing:'border-box',outline:'none'};
-  return <div>
-    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:18}}>
-      <div><span style={{fontWeight:700,fontSize:20,color:'#1e293b'}}>Clients</span><span style={{marginLeft:10,background:'#eff6ff',color:'#1e40af',borderRadius:20,padding:'2px 12px',fontSize:13,fontWeight:600}}>{data.clients.length} clients</span></div>
-      <button style={{background:'#1e40af',color:'#fff',border:'none',borderRadius:8,padding:'9px 18px',fontWeight:600,fontSize:13,cursor:'pointer'}} onClick={()=>setShowForm(true)}>+ Nouveau client</button>
-    </div>
-    <div style={{display:'flex',flexDirection:'column',gap:12}}>
-      {data.clients.map(c=>{
-        const {devs,facs,chans}=getHisto(c);
-        const ca=facs.filter(f=>f.statut==='payee').reduce((s,f)=>s+calcTotaux(f.lignes).ttc,0);
-        return <div key={c.id} style={{background:'#fff',border:'1px solid #e2e8f0',borderRadius:14,padding:16,cursor:'pointer'}} onClick={()=>setSelected(selected?.id===c.id?null:c)}>
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
-            <div>
-              <div style={{fontWeight:700,fontSize:16,color:'#1e293b'}}>{c.nom}</div>
-              {c.entreprise&&<div style={{fontSize:13,color:'#64748b',marginTop:2}}>🏢 {c.entreprise}</div>}
-              <div style={{display:'flex',gap:16,marginTop:6,flexWrap:'wrap'}}>
-                {c.tel&&<span style={{fontSize:13,color:'#475569'}}>📞 {c.tel}</span>}
-                {c.email&&<span style={{fontSize:13,color:'#475569'}}>✉️ {c.email}</span>}
-              </div>
-            </div>
-            <div style={{textAlign:'right'}}>
-              <div style={{fontWeight:700,color:'#22c55e',fontSize:15}}>{Number(ca).toLocaleString('fr-FR',{maximumFractionDigits:0})} € CA</div>
-              <div style={{fontSize:12,color:'#94a3b8',marginTop:2}}>{chans.length} chantier(s)</div>
-            </div>
-          </div>
-          {selected?.id===c.id&&<div style={{marginTop:14,paddingTop:14,borderTop:'1px solid #e2e8f0'}}>
-            {c.adresse&&<div style={{fontSize:13,color:'#64748b',marginBottom:8}}>📍 {c.adresse}</div>}
-            {c.notes&&<div style={{fontSize:13,color:'#475569',padding:'8px 12px',background:'#f8fafc',borderRadius:8,marginBottom:10,borderLeft:'3px solid #cbd5e1'}}>{c.notes}</div>}
-            <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8,marginBottom:10}}>
-              <div style={{background:'#eff6ff',borderRadius:10,padding:10,textAlign:'center'}}><div style={{fontSize:20,fontWeight:800,color:'#1e40af'}}>{devs.length}</div><div style={{fontSize:11,color:'#64748b'}}>Devis</div></div>
-              <div style={{background:'#f0fdf4',borderRadius:10,padding:10,textAlign:'center'}}><div style={{fontSize:20,fontWeight:800,color:'#16a34a'}}>{facs.length}</div><div style={{fontSize:11,color:'#64748b'}}>Factures</div></div>
-              <div style={{background:'#faf5ff',borderRadius:10,padding:10,textAlign:'center'}}><div style={{fontSize:20,fontWeight:800,color:'#7c3aed'}}>{chans.length}</div><div style={{fontSize:11,color:'#64748b'}}>Chantiers</div></div>
-            </div>
-            <button onClick={(e)=>{e.stopPropagation();del(c.id);}} style={{background:'#fee2e2',color:'#ef4444',border:'none',borderRadius:8,padding:'6px 14px',fontWeight:600,fontSize:12,cursor:'pointer'}}>Supprimer ce client</button>
-          </div>}
-        </div>;
-      })}
-    </div>
-    {showForm&&<Modal title="Nouveau client" onClose={()=>setShowForm(false)}>
-      <div style={{marginBottom:12}}><label style={{display:'block',fontSize:12,fontWeight:600,color:'#64748b',marginBottom:4}}>Nom / Prénom *</label><input style={inp2} value={form.nom} onChange={e=>setForm(f=>({...f,nom:e.target.value}))} placeholder="Ex : M. Dupont"/></div>
-      <div style={{marginBottom:12}}><label style={{display:'block',fontSize:12,fontWeight:600,color:'#64748b',marginBottom:4}}>Société</label><input style={inp2} value={form.entreprise} onChange={e=>setForm(f=>({...f,entreprise:e.target.value}))} placeholder="SCI, SARL…"/></div>
-      <div style={{display:'flex',gap:10}}>
-        <div style={{marginBottom:12,flex:1}}><label style={{display:'block',fontSize:12,fontWeight:600,color:'#64748b',marginBottom:4}}>Téléphone</label><input style={inp2} value={form.tel} onChange={e=>setForm(f=>({...f,tel:e.target.value}))} placeholder="06 12 34 56 78"/></div>
-        <div style={{marginBottom:12,flex:1}}><label style={{display:'block',fontSize:12,fontWeight:600,color:'#64748b',marginBottom:4}}>Email</label><input style={inp2} value={form.email} onChange={e=>setForm(f=>({...f,email:e.target.value}))} placeholder="client@email.fr"/></div>
-      </div>
-      <div style={{marginBottom:12}}><label style={{display:'block',fontSize:12,fontWeight:600,color:'#64748b',marginBottom:4}}>Adresse</label><input style={inp2} value={form.adresse} onChange={e=>setForm(f=>({...f,adresse:e.target.value}))} placeholder="12 rue des Fleurs, 75001 Paris"/></div>
-      <div style={{marginBottom:12}}><label style={{display:'block',fontSize:12,fontWeight:600,color:'#64748b',marginBottom:4}}>Notes</label><textarea style={{...inp2,minHeight:60,resize:'vertical'}} value={form.notes} onChange={e=>setForm(f=>({...f,notes:e.target.value}))}/></div>
-      <div style={{display:'flex',gap:10}}><button style={{background:'#1e40af',color:'#fff',border:'none',borderRadius:8,padding:'9px 18px',fontWeight:600,fontSize:13,cursor:'pointer'}} onClick={add}>Ajouter</button><button style={{background:'#f1f5f9',color:'#64748b',border:'none',borderRadius:8,padding:'9px 18px',fontWeight:600,fontSize:13,cursor:'pointer'}} onClick={()=>setShowForm(false)}>Annuler</button></div>
-    </Modal>}
-  </div>;
-}
-
-// SUIVI DU TEMPS
-function Temps({data,setData}){
-  const [showForm,setShowForm]=useState(false);
-  const [form,setForm]=useState({chantier:'',date:TODAY,heures:8,description:'',ouvrier:''});
-  const add=()=>{if(!form.chantier)return;setData(d=>({...d,temps:[...d.temps,{...form,id:Date.now(),heures:+form.heures}]}));setForm({chantier:'',date:TODAY,heures:8,description:'',ouvrier:''});setShowForm(false);};
-  const del=(id)=>setData(d=>({...d,temps:d.temps.filter(t=>t.id!==id)}));
-  const total=(data.temps||[]).reduce((s,t)=>s+(+t.heures||0),0);
-  const parChantier={};(data.temps||[]).forEach(t=>{parChantier[t.chantier]=(parChantier[t.chantier]||0)+(+t.heures||0);});
-  const tries=[...(data.temps||[])].sort((a,b)=>b.date.localeCompare(a.date));
-  const inp2={width:'100%',padding:'8px 10px',borderRadius:8,border:'1px solid #e2e8f0',fontSize:14,color:'#1e293b',boxSizing:'border-box',outline:'none'};
-  return <div>
-    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:18}}>
-      <div><span style={{fontWeight:700,fontSize:20,color:'#1e293b'}}>Suivi du temps</span><span style={{marginLeft:10,background:'#eff6ff',color:'#1e40af',borderRadius:20,padding:'2px 12px',fontSize:13,fontWeight:600}}>{total}h total</span></div>
-      <button style={{background:'#1e40af',color:'#fff',border:'none',borderRadius:8,padding:'9px 18px',fontWeight:600,fontSize:13,cursor:'pointer'}} onClick={()=>setShowForm(true)}>+ Saisir des heures</button>
-    </div>
-    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(130px,1fr))',gap:10,marginBottom:20}}>
-      {Object.entries(parChantier).map(([nom,h])=><div key={nom} style={{background:'#fff',border:'1px solid #e2e8f0',borderRadius:12,padding:'12px 14px'}}>
-        <div style={{fontSize:22,fontWeight:800,color:'#1e40af'}}>{h}h</div>
-        <div style={{fontSize:12,color:'#64748b',marginTop:2,fontWeight:600}}>{nom.split('–')[0].trim()}</div>
-      </div>)}
-    </div>
-    <div style={{display:'flex',flexDirection:'column',gap:8}}>
-      {tries.map(t=><div key={t.id} style={{background:'#fff',border:'1px solid #e2e8f0',borderRadius:12,padding:'12px 16px',display:'flex',alignItems:'center',gap:12}}>
-        <div style={{background:'#eff6ff',borderRadius:10,padding:'10px 14px',textAlign:'center',minWidth:56,flexShrink:0}}><div style={{fontWeight:800,fontSize:18,color:'#1e40af'}}>{t.heures}h</div></div>
-        <div style={{flex:1}}>
-          <div style={{fontWeight:600,color:'#1e293b',fontSize:14}}>{t.chantier}</div>
-          {t.description&&<div style={{fontSize:13,color:'#64748b',marginTop:2}}>{t.description}</div>}
-          <div style={{fontSize:12,color:'#94a3b8',marginTop:2}}>📅 {t.date&&new Date(t.date+"T12:00:00").toLocaleDateString("fr-FR")}{t.ouvrier&&" · 👷 "+t.ouvrier}</div>
-        </div>
-        <button onClick={()=>del(t.id)} style={{background:'#fee2e2',color:'#ef4444',border:'none',borderRadius:8,padding:'6px 12px',fontWeight:600,fontSize:12,cursor:'pointer'}}>×</button>
-      </div>)}
-      {tries.length===0&&<div style={{textAlign:'center',color:'#94a3b8',padding:40,fontSize:14}}>⏱️ Aucune heure saisie pour l instant</div>}
-    </div>
-    {showForm&&<Modal title="Saisir des heures" onClose={()=>setShowForm(false)}>
-      <div style={{marginBottom:12}}><label style={{display:'block',fontSize:12,fontWeight:600,color:'#64748b',marginBottom:4}}>Chantier *</label><select style={inp2} value={form.chantier} onChange={e=>setForm(f=>({...f,chantier:e.target.value}))}><option value="">— Choisir —</option>{data.chantiers.map(c=><option key={c.id} value={c.nom}>{c.nom}</option>)}</select></div>
-      <div style={{display:'flex',gap:10}}>
-        <div style={{marginBottom:12,flex:1}}><label style={{display:'block',fontSize:12,fontWeight:600,color:'#64748b',marginBottom:4}}>Date</label><input type="date" style={inp2} value={form.date} onChange={e=>setForm(f=>({...f,date:e.target.value}))}/></div>
-        <div style={{marginBottom:12,flex:1}}><label style={{display:'block',fontSize:12,fontWeight:600,color:'#64748b',marginBottom:4}}>Heures</label><input type="number" min="0.5" max="24" step="0.5" style={inp2} value={form.heures} onChange={e=>setForm(f=>({...f,heures:e.target.value}))}/></div>
-      </div>
-      <div style={{marginBottom:12}}><label style={{display:'block',fontSize:12,fontWeight:600,color:'#64748b',marginBottom:4}}>Description</label><input style={inp2} value={form.description} onChange={e=>setForm(f=>({...f,description:e.target.value}))} placeholder="Ex : Pose carrelage"/></div>
-      <div style={{marginBottom:12}}><label style={{display:'block',fontSize:12,fontWeight:600,color:'#64748b',marginBottom:4}}>Ouvrier / Équipe</label><input style={inp2} value={form.ouvrier} onChange={e=>setForm(f=>({...f,ouvrier:e.target.value}))} placeholder="Ex : Équipe 1"/></div>
-      <div style={{display:'flex',gap:10}}><button style={{background:'#1e40af',color:'#fff',border:'none',borderRadius:8,padding:'9px 18px',fontWeight:600,fontSize:13,cursor:'pointer'}} onClick={add}>Ajouter</button><button style={{background:'#f1f5f9',color:'#64748b',border:'none',borderRadius:8,padding:'9px 18px',fontWeight:600,fontSize:13,cursor:'pointer'}} onClick={()=>setShowForm(false)}>Annuler</button></div>
-    </Modal>}
-  </div>;
-}
-
 // DASHBOARD
 function Dashboard({data}){
   const ca=data.factures.filter(f=>f.statut==="payee").reduce((s,f)=>s+calcTotaux(f.lignes).ttc,0);
   const enAtt=data.factures.filter(f=>f.statut!=="payee").reduce((s,f)=>s+calcTotaux(f.lignes).ttc,0);
   const rdvAuj=data.rdv.filter(r=>r.date===TODAY);
   const urgent=data.taches.filter(t=>!t.fait&&t.priorite==="haute");
-  const CFGrdv={chantier:{emoji:"🏗️"},devis:{emoji:"📋"},client:{emoji:"👤"},autre:{emoji:"📅"}};
-  const Stat=({emoji,label,value,color})=><div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:14,padding:16,borderTop:}}>
+  const Stat=({emoji,label,value,color})=><div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:14,padding:16,borderTop:"3px solid "+color}}>
     <div style={{fontSize:22,marginBottom:6}}>{emoji}</div>
-    <div style={{fontSize:22,fontWeight:800,color}}>{value}</div>
+    <div style={{fontSize:22,fontWeight:800,color:color}}>{value}</div>
     <div style={{fontSize:13,fontWeight:600,color:"#1e293b",marginTop:2}}>{label}</div>
   </div>;
   return <div>
@@ -626,55 +516,161 @@ function Dashboard({data}){
       <Stat emoji="📋" label="Devis à faire" value={data.devis.filter(d=>d.statut==="a_faire").length} color="#8b5cf6"/>
     </div>
     {rdvAuj.length>0&&<div style={{background:"#eff6ff",border:"1px solid #bfdbfe",borderRadius:14,padding:16,marginBottom:16}}>
-      <div style={{fontWeight:700,fontSize:14,color:"#1e40af",marginBottom:10}}>📅 Aujourd hui — {rdvAuj.length} rendez-vous</div>
-      {rdvAuj.map(r=><div key={r.id} style={{display:"flex",gap:10,alignItems:"center",background:"#fff",borderRadius:10,padding:"10px 14px",marginBottom:6}}>
-        <span style={{fontSize:18}}>{CFGrdv[r.type]?.emoji||"📅"}</span>
-        <div><div style={{fontWeight:600,fontSize:14,color:"#1e293b"}}>{r.titre}</div><div style={{fontSize:12,color:"#64748b"}}>{r.heure} · {r.duree} min{r.client?" · "+r.client:""}</div></div>
+      <div style={{fontWeight:700,fontSize:14,color:"#1e40af",marginBottom:10}}>📅 Aujourd'hui — {rdvAuj.length} RDV</div>
+      {rdvAuj.map(r=><div key={r.id} style={{background:"#fff",borderRadius:10,padding:"10px 14px",marginBottom:6}}>
+        <div style={{fontWeight:600,fontSize:14}}>{r.titre}</div>
+        <div style={{fontSize:12,color:"#64748b"}}>{r.heure} · {r.duree}min</div>
       </div>)}
     </div>}
     {urgent.length>0&&<div style={{background:"#fef2f2",border:"1px solid #fecaca",borderRadius:14,padding:16,marginBottom:16}}>
       <div style={{fontWeight:700,fontSize:14,color:"#ef4444",marginBottom:10}}>🔴 Tâches urgentes ({urgent.length})</div>
-      {urgent.map(t=><div key={t.id} style={{background:"#fff",borderRadius:10,padding:"10px 14px",marginBottom:6}}><div style={{fontWeight:600,fontSize:14,color:"#1e293b"}}>{t.titre}</div></div>)}
+      {urgent.map(t=><div key={t.id} style={{background:"#fff",borderRadius:10,padding:"10px 14px",marginBottom:6}}><div style={{fontWeight:600,fontSize:14}}>{t.titre}</div></div>)}
     </div>}
     <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:14,padding:16}}>
       <div style={{fontWeight:700,fontSize:14,color:"#1e293b",marginBottom:12}}>🏗️ Avancement chantiers</div>
       {data.chantiers.map(c=><div key={c.id} style={{marginBottom:12}}>
         <div style={{display:"flex",justifyContent:"space-between",fontSize:13,marginBottom:4}}><span style={{fontWeight:600}}>{c.nom}</span><span style={{fontWeight:700,color:"#1e40af"}}>{c.avancement}%</span></div>
-        <div style={{background:"#e2e8f0",borderRadius:8,height:8,overflow:"hidden"}}><div style={{height:"100%",width:,background:c.avancement===100?"#22c55e":"#1e40af",borderRadius:8}}/></div>
+        <div style={{background:"#e2e8f0",borderRadius:8,height:8,overflow:"hidden"}}><div style={{height:"100%",width:c.avancement+"%",background:c.avancement===100?"#22c55e":"#1e40af",borderRadius:8}}/></div>
       </div>)}
     </div>
   </div>;
 }
 
+// CLIENTS
+function Clients({data,setData}){
+  const [showForm,setShowForm]=useState(false);
+  const [sel,setSel]=useState(null);
+  const [form,setForm]=useState({nom:"",entreprise:"",email:"",tel:"",adresse:"",notes:""});
+  const s2={width:"100%",padding:"8px 10px",borderRadius:8,border:"1px solid #e2e8f0",fontSize:14,color:"#1e293b",boxSizing:"border-box",outline:"none"};
+  const add=()=>{if(!form.nom.trim())return;setData(d=>({...d,clients:[...d.clients,{...form,id:Date.now()}]}));setForm({nom:"",entreprise:"",email:"",tel:"",adresse:"",notes:""});setShowForm(false);};
+  const del=(id)=>setData(d=>({...d,clients:d.clients.filter(c=>c.id!==id)}));
+  return <div>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}>
+      <div><span style={{fontWeight:700,fontSize:20,color:"#1e293b"}}>Clients</span><span style={{marginLeft:10,background:"#eff6ff",color:"#1e40af",borderRadius:20,padding:"2px 12px",fontSize:13,fontWeight:600}}>{(data.clients||[]).length}</span></div>
+      <button style={{background:"#1e40af",color:"#fff",border:"none",borderRadius:8,padding:"9px 18px",fontWeight:600,fontSize:13,cursor:"pointer"}} onClick={()=>setShowForm(true)}>+ Nouveau client</button>
+    </div>
+    <div style={{display:"flex",flexDirection:"column",gap:12}}>
+      {(data.clients||[]).map(c=>{
+        const ca=(data.factures||[]).filter(f=>f.client===c.nom&&f.statut==="payee").reduce((s,f)=>s+calcTotaux(f.lignes).ttc,0);
+        const chans=(data.chantiers||[]).filter(ch=>ch.client===c.nom).length;
+        return <div key={c.id} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:14,padding:16,cursor:"pointer"}} onClick={()=>setSel(sel&&sel.id===c.id?null:c)}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+            <div>
+              <div style={{fontWeight:700,fontSize:16,color:"#1e293b"}}>{c.nom}</div>
+              {c.entreprise&&<div style={{fontSize:13,color:"#64748b",marginTop:1}}>🏢 {c.entreprise}</div>}
+              <div style={{display:"flex",gap:12,marginTop:6,flexWrap:"wrap"}}>
+                {c.tel&&<span style={{fontSize:13,color:"#475569"}}>📞 {c.tel}</span>}
+                {c.email&&<span style={{fontSize:13,color:"#475569"}}>✉️ {c.email}</span>}
+              </div>
+            </div>
+            <div style={{textAlign:"right"}}>
+              <div style={{fontWeight:700,color:"#22c55e",fontSize:15}}>{Number(ca).toLocaleString("fr-FR",{maximumFractionDigits:0})} € CA</div>
+              <div style={{fontSize:12,color:"#94a3b8"}}>{chans} chantier(s)</div>
+            </div>
+          </div>
+          {sel&&sel.id===c.id&&<div style={{marginTop:12,paddingTop:12,borderTop:"1px solid #e2e8f0"}}>
+            {c.adresse&&<div style={{fontSize:13,color:"#64748b",marginBottom:8}}>📍 {c.adresse}</div>}
+            {c.notes&&<div style={{fontSize:13,color:"#475569",padding:"8px 12px",background:"#f8fafc",borderRadius:8,marginBottom:10}}>{c.notes}</div>}
+            <button onClick={(e)=>{e.stopPropagation();del(c.id);}} style={{background:"#fee2e2",color:"#ef4444",border:"none",borderRadius:8,padding:"6px 14px",fontWeight:600,fontSize:12,cursor:"pointer"}}>Supprimer</button>
+          </div>}
+        </div>;
+      })}
+      {(data.clients||[]).length===0&&<div style={{textAlign:"center",color:"#94a3b8",padding:40}}>👥 Aucun client enregistré</div>}
+    </div>
+    {showForm&&<Modal title="Nouveau client" onClose={()=>setShowForm(false)}>
+      <div style={{marginBottom:12}}><label style={{display:"block",fontSize:12,fontWeight:600,color:"#64748b",marginBottom:4}}>Nom *</label><input style={s2} value={form.nom} onChange={e=>setForm(f=>({...f,nom:e.target.value}))} placeholder="M. Dupont"/></div>
+      <div style={{marginBottom:12}}><label style={{display:"block",fontSize:12,fontWeight:600,color:"#64748b",marginBottom:4}}>Société</label><input style={s2} value={form.entreprise} onChange={e=>setForm(f=>({...f,entreprise:e.target.value}))} placeholder="SCI, SARL…"/></div>
+      <div style={{display:"flex",gap:10}}>
+        <div style={{marginBottom:12,flex:1}}><label style={{display:"block",fontSize:12,fontWeight:600,color:"#64748b",marginBottom:4}}>Téléphone</label><input style={s2} value={form.tel} onChange={e=>setForm(f=>({...f,tel:e.target.value}))} placeholder="06 12 34 56 78"/></div>
+        <div style={{marginBottom:12,flex:1}}><label style={{display:"block",fontSize:12,fontWeight:600,color:"#64748b",marginBottom:4}}>Email</label><input style={s2} value={form.email} onChange={e=>setForm(f=>({...f,email:e.target.value}))} placeholder="client@email.fr"/></div>
+      </div>
+      <div style={{marginBottom:12}}><label style={{display:"block",fontSize:12,fontWeight:600,color:"#64748b",marginBottom:4}}>Adresse</label><input style={s2} value={form.adresse} onChange={e=>setForm(f=>({...f,adresse:e.target.value}))}/></div>
+      <div style={{marginBottom:12}}><label style={{display:"block",fontSize:12,fontWeight:600,color:"#64748b",marginBottom:4}}>Notes</label><textarea style={{...s2,minHeight:60,resize:"vertical"}} value={form.notes} onChange={e=>setForm(f=>({...f,notes:e.target.value}))}/></div>
+      <div style={{display:"flex",gap:10}}><button style={{background:"#1e40af",color:"#fff",border:"none",borderRadius:8,padding:"9px 18px",fontWeight:600,fontSize:13,cursor:"pointer"}} onClick={add}>Ajouter</button><button style={{background:"#f1f5f9",color:"#64748b",border:"none",borderRadius:8,padding:"9px 18px",fontWeight:600,fontSize:13,cursor:"pointer"}} onClick={()=>setShowForm(false)}>Annuler</button></div>
+    </Modal>}
+  </div>;
+}
+
+// TEMPS
+function Temps({data,setData}){
+  const [showForm,setShowForm]=useState(false);
+  const [form,setForm]=useState({chantier:"",date:TODAY,heures:8,description:"",ouvrier:""});
+  const s2={width:"100%",padding:"8px 10px",borderRadius:8,border:"1px solid #e2e8f0",fontSize:14,color:"#1e293b",boxSizing:"border-box",outline:"none"};
+  const add=()=>{if(!form.chantier)return;setData(d=>({...d,temps:[...d.temps,{...form,id:Date.now(),heures:+form.heures}]}));setForm({chantier:"",date:TODAY,heures:8,description:"",ouvrier:""});setShowForm(false);};
+  const del=(id)=>setData(d=>({...d,temps:d.temps.filter(t=>t.id!==id)}));
+  const total=(data.temps||[]).reduce((s,t)=>s+(+t.heures||0),0);
+  const parC={};(data.temps||[]).forEach(t=>{parC[t.chantier]=(parC[t.chantier]||0)+(+t.heures||0);});
+  const tries=[...(data.temps||[])].sort((a,b)=>b.date.localeCompare(a.date));
+  return <div>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}>
+      <div><span style={{fontWeight:700,fontSize:20,color:"#1e293b"}}>Suivi du temps</span><span style={{marginLeft:10,background:"#eff6ff",color:"#1e40af",borderRadius:20,padding:"2px 12px",fontSize:13,fontWeight:600}}>{total}h total</span></div>
+      <button style={{background:"#1e40af",color:"#fff",border:"none",borderRadius:8,padding:"9px 18px",fontWeight:600,fontSize:13,cursor:"pointer"}} onClick={()=>setShowForm(true)}>+ Saisir heures</button>
+    </div>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(130px,1fr))",gap:10,marginBottom:20}}>
+      {Object.entries(parC).map(([nom,h])=><div key={nom} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,padding:"12px 14px"}}>
+        <div style={{fontSize:22,fontWeight:800,color:"#1e40af"}}>{h}h</div>
+        <div style={{fontSize:12,color:"#64748b",marginTop:2}}>{nom.split("–")[0].trim()}</div>
+      </div>)}
+    </div>
+    <div style={{display:"flex",flexDirection:"column",gap:8}}>
+      {tries.map(t=><div key={t.id} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,padding:"12px 16px",display:"flex",alignItems:"center",gap:12}}>
+        <div style={{background:"#eff6ff",borderRadius:10,padding:"10px 14px",textAlign:"center",minWidth:52,flexShrink:0}}><div style={{fontWeight:800,fontSize:18,color:"#1e40af"}}>{t.heures}h</div></div>
+        <div style={{flex:1}}>
+          <div style={{fontWeight:600,color:"#1e293b",fontSize:14}}>{t.chantier}</div>
+          {t.description&&<div style={{fontSize:13,color:"#64748b"}}>{t.description}</div>}
+          <div style={{fontSize:12,color:"#94a3b8"}}>📅 {t.date}{t.ouvrier?" · 👷 "+t.ouvrier:""}</div>
+        </div>
+        <button onClick={()=>del(t.id)} style={{background:"#fee2e2",color:"#ef4444",border:"none",borderRadius:8,padding:"6px 12px",fontWeight:600,fontSize:12,cursor:"pointer"}}>×</button>
+      </div>)}
+      {tries.length===0&&<div style={{textAlign:"center",color:"#94a3b8",padding:40}}>⏱️ Aucune heure saisie</div>}
+    </div>
+    {showForm&&<Modal title="Saisir des heures" onClose={()=>setShowForm(false)}>
+      <div style={{marginBottom:12}}><label style={{display:"block",fontSize:12,fontWeight:600,color:"#64748b",marginBottom:4}}>Chantier *</label><select style={s2} value={form.chantier} onChange={e=>setForm(f=>({...f,chantier:e.target.value}))}><option value="">— Choisir —</option>{data.chantiers.map(c=><option key={c.id} value={c.nom}>{c.nom}</option>)}</select></div>
+      <div style={{display:"flex",gap:10}}>
+        <div style={{marginBottom:12,flex:1}}><label style={{display:"block",fontSize:12,fontWeight:600,color:"#64748b",marginBottom:4}}>Date</label><input type="date" style={s2} value={form.date} onChange={e=>setForm(f=>({...f,date:e.target.value}))}/></div>
+        <div style={{marginBottom:12,flex:1}}><label style={{display:"block",fontSize:12,fontWeight:600,color:"#64748b",marginBottom:4}}>Heures</label><input type="number" min="0.5" max="24" step="0.5" style={s2} value={form.heures} onChange={e=>setForm(f=>({...f,heures:e.target.value}))}/></div>
+      </div>
+      <div style={{marginBottom:12}}><label style={{display:"block",fontSize:12,fontWeight:600,color:"#64748b",marginBottom:4}}>Description</label><input style={s2} value={form.description} onChange={e=>setForm(f=>({...f,description:e.target.value}))} placeholder="Ex : Pose carrelage"/></div>
+      <div style={{marginBottom:12}}><label style={{display:"block",fontSize:12,fontWeight:600,color:"#64748b",marginBottom:4}}>Ouvrier / Équipe</label><input style={s2} value={form.ouvrier} onChange={e=>setForm(f=>({...f,ouvrier:e.target.value}))} placeholder="Ex : Équipe 1"/></div>
+      <div style={{display:"flex",gap:10}}><button style={{background:"#1e40af",color:"#fff",border:"none",borderRadius:8,padding:"9px 18px",fontWeight:600,fontSize:13,cursor:"pointer"}} onClick={add}>Ajouter</button><button style={{background:"#f1f5f9",color:"#64748b",border:"none",borderRadius:8,padding:"9px 18px",fontWeight:600,fontSize:13,cursor:"pointer"}} onClick={()=>setShowForm(false)}>Annuler</button></div>
+    </Modal>}
+  </div>;
+}
+
 // PARAMÈTRES
 function Parametres({data,setData}){
-  const [form,setForm]=useState(data.entreprise);
+  const [form,setForm]=useState(data.entreprise||{nom:"",siret:"",adresse:"",cp:"",ville:"",tel:"",email:"",tva:""});
   const [saved,setSaved]=useState(false);
+  const s2={width:"100%",padding:"8px 10px",borderRadius:8,border:"1px solid #e2e8f0",fontSize:14,color:"#1e293b",boxSizing:"border-box",outline:"none"};
   const save=()=>{setData(d=>({...d,entreprise:form}));setSaved(true);setTimeout(()=>setSaved(false),2000);};
-  const inp2={width:"100%",padding:"8px 10px",borderRadius:8,border:"1px solid #e2e8f0",fontSize:14,color:"#1e293b",boxSizing:"border-box",outline:"none"};
   return <div>
     <div style={{fontWeight:700,fontSize:20,color:"#1e293b",marginBottom:18}}>⚙️ Paramètres entreprise</div>
     <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:14,padding:20,marginBottom:16}}>
-      {[["Nom de l entreprise *","nom"],["SIRET","siret"],["N° TVA","tva"],["Adresse","adresse"],["Code postal","cp"],["Ville","ville"],["Téléphone","tel"],["Email","email"]].map(([label,key])=><div key={key} style={{marginBottom:12}}><label style={{display:"block",fontSize:12,fontWeight:600,color:"#64748b",marginBottom:4}}>{label}</label><input style={inp2} value={form[key]||""} onChange={e=>setForm(f=>({...f,[key]:e.target.value}))}/></div>)}
+      <div style={{fontWeight:600,color:"#475569",fontSize:13,marginBottom:16}}>Ces informations apparaissent sur vos devis et factures</div>
+      {[["Nom de l'entreprise","nom"],["SIRET","siret"],["N° TVA","tva"],["Adresse","adresse"],["Code postal","cp"],["Ville","ville"],["Téléphone","tel"],["Email","email"]].map(([label,key])=><div key={key} style={{marginBottom:12}}><label style={{display:"block",fontSize:12,fontWeight:600,color:"#64748b",marginBottom:4}}>{label}</label><input style={s2} value={form[key]||""} onChange={e=>setForm(f=>({...f,[key]:e.target.value}))}/></div>)}
       <button style={{background:saved?"#16a34a":"#1e40af",color:"#fff",border:"none",borderRadius:8,padding:"9px 20px",fontWeight:600,fontSize:14,cursor:"pointer"}} onClick={save}>{saved?"✅ Enregistré !":"💾 Enregistrer"}</button>
     </div>
     <div style={{background:"#fffbeb",border:"1px solid #fde68a",borderRadius:14,padding:16}}>
-      <div style={{fontWeight:700,color:"#92400e",marginBottom:8}}>📋 Facturation électronique obligatoire (sept. 2026)</div>
-      <div style={{fontSize:13,color:"#78350f",lineHeight:1.6}}>À partir de septembre 2026, toutes les factures B2B doivent être émises en format électronique via une plateforme agréée (PDP). Assurez-vous que votre SIRET et N° TVA sont bien renseignés.</div>
+      <div style={{fontWeight:700,color:"#92400e",marginBottom:8}}>📋 Facturation électronique (sept. 2026)</div>
+      <div style={{fontSize:13,color:"#78350f",lineHeight:1.6}}>À partir de septembre 2026, toutes les factures B2B doivent être émises en format électronique. Assurez-vous que votre SIRET et N° TVA sont bien renseignés.</div>
     </div>
   </div>;
 }
 
 function App(){
   const [tab,setTab]=useState("dashboard");
-  const [data,setData]=useState({...INITIAL_DATA,clients:[
-    {id:1,nom:"M. Martin",entreprise:"",email:"martin@email.fr",tel:"06 11 22 33 44",adresse:"5 rue des Lilas, 75016 Paris",notes:"Client fidèle depuis 2022"},
-    {id:2,nom:"SCI Dupont",entreprise:"SCI Dupont & Associés",email:"contact@scidupont.fr",tel:"01 23 45 67 89",adresse:"12 avenue Haussmann, 75009 Paris",notes:""},
-    {id:3,nom:"Mme Leblanc",entreprise:"",email:"leblanc@email.fr",tel:"06 55 44 33 22",adresse:"8 chemin du Moulin, 69001 Lyon",notes:""},
-  ],temps:[
-    {id:1,chantier:"Villa Martin – Extension",date:"2026-06-20",heures:8,description:"Pose plomberie RDC",ouvrier:"Chef de chantier"},
-    {id:2,chantier:"Immeuble Dupont – Rénovation",date:"2026-06-22",heures:8,description:"Dépose cloisons",ouvrier:"Équipe 2"},
-  ],entreprise:{nom:"Gest'Chantier BTP",siret:"123 456 789 00012",adresse:"12 rue des Artisans",cp:"75001",ville:"Paris",tel:"06 12 34 56 78",email:"contact@gestchantier.fr",tva:"FR12345678900"}});
+  const [data,setData]=useState({...INITIAL_DATA,
+    clients:[
+      {id:1,nom:"M. Martin",entreprise:"",email:"martin@email.fr",tel:"06 11 22 33 44",adresse:"5 rue des Lilas, 75016 Paris",notes:"Client fidèle"},
+      {id:2,nom:"SCI Dupont",entreprise:"SCI Dupont",email:"contact@scidupont.fr",tel:"01 23 45 67 89",adresse:"12 av. Haussmann, 75009 Paris",notes:""},
+      {id:3,nom:"Mme Leblanc",entreprise:"",email:"leblanc@email.fr",tel:"06 55 44 33 22",adresse:"8 chemin du Moulin, 69001 Lyon",notes:""},
+    ],
+    temps:[
+      {id:1,chantier:"Villa Martin – Extension",date:"2026-06-20",heures:8,description:"Pose plomberie RDC",ouvrier:"Chef de chantier"},
+      {id:2,chantier:"Immeuble Dupont – Rénovation",date:"2026-06-22",heures:8,description:"Dépose cloisons",ouvrier:"Équipe 2"},
+    ],
+    entreprise:{nom:"Gest'Chantier BTP",siret:"123 456 789 00012",adresse:"12 rue des Artisans",cp:"75001",ville:"Paris",tel:"06 12 34 56 78",email:"contact@gestchantier.fr",tva:"FR12345678900"},
+  });
   const rdvAuj=data.rdv.filter(r=>r.date===TODAY);
   const tabs=[
     {id:"dashboard",emoji:"🏠",title:"Accueil",count:0},
@@ -693,7 +689,7 @@ function App(){
       <div style={{background:"#f59e0b",borderRadius:10,width:36,height:36,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>🔧</div>
       <div style={{flex:1}}>
         <div style={{color:"#fff",fontWeight:800,fontSize:17}}>Gest'Chantier</div>
-        <div style={{color:"#93c5fd",fontSize:11}}>{current?.title}</div>
+        <div style={{color:"#93c5fd",fontSize:11}}>{current&&current.title}</div>
       </div>
       <div style={{color:"#93c5fd",fontSize:12}}>{new Date().toLocaleDateString("fr-FR",{weekday:"short",day:"numeric",month:"short"})}</div>
     </div>
