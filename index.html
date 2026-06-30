@@ -697,7 +697,7 @@ const appelerFonction = async (nom, body) => {
   return res.json();
 };
 
-function PageAbonnement({ session, statut, onRefresh }) {
+function PageAbonnement({ session, statut, onRefresh, onLogout }) {
   const [loading, setLoading] = useState(false);
 
   const demarrerAbonnement = async () => {
@@ -750,6 +750,9 @@ function PageAbonnement({ session, statut, onRefresh }) {
         </button>
         <button onClick={onRefresh} style={{width:"100%",padding:"10px",borderRadius:10,border:"none",background:"transparent",color:"#94a3b8",fontWeight:600,fontSize:13,cursor:"pointer"}}>
           J'ai déjà payé, actualiser
+        </button>
+        <button onClick={onLogout} style={{width:"100%",padding:"10px",borderRadius:10,border:"none",background:"transparent",color:"#cbd5e1",fontWeight:600,fontSize:12,cursor:"pointer",marginTop:4}}>
+          Se déconnecter
         </button>
       </div>
     </div>
@@ -920,7 +923,8 @@ function MainApp({ session, onLogout }){
         <div style={{color:"#fff",fontWeight:800,fontSize:17}}>Gest'Chantier</div>
         <div style={{color:"#93c5fd",fontSize:11}}>{current&&current.title}</div>
       </div>
-      <div style={{color:"#93c5fd",fontSize:12}}>{new Date().toLocaleDateString("fr-FR",{weekday:"short",day:"numeric",month:"short"})}</div>
+      <div style={{color:"#93c5fd",fontSize:12,textAlign:"right"}}>{new Date().toLocaleDateString("fr-FR",{weekday:"short",day:"numeric",month:"short"})}</div>
+      <button onClick={onLogout} style={{background:"rgba(255,255,255,0.12)",color:"#fff",border:"1px solid rgba(255,255,255,0.25)",borderRadius:8,padding:"7px 14px",fontSize:12,fontWeight:600,cursor:"pointer",flexShrink:0}}>Déconnexion</button>
     </div>
     <div style={{background:"#fff",borderBottom:"1px solid #e2e8f0",overflowX:"auto",display:"flex",whiteSpace:"nowrap",flexShrink:0}}>
       {tabs.map(t=><button key={t.id} onClick={()=>setTab(t.id)} style={{padding:"10px 12px",border:"none",background:"none",cursor:"pointer",borderBottom:tab===t.id?"3px solid #1e40af":"3px solid transparent",display:"inline-flex",flexDirection:"column",alignItems:"center",gap:2,flexShrink:0,minWidth:56}}>
@@ -1013,7 +1017,7 @@ function App(){
 
   const actif = ["trialing","active"].includes(statutAbo);
   if (!actif) {
-    return <PageAbonnement session={session} statut={statutAbo} onRefresh={() => verifierAbonnement(session)} />;
+    return <PageAbonnement session={session} statut={statutAbo} onRefresh={() => verifierAbonnement(session)} onLogout={handleLogout} />;
   }
 
   return <MainApp session={session} onLogout={handleLogout} />;
