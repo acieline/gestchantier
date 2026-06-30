@@ -760,7 +760,7 @@ function PageAbonnement({ session, statut, onRefresh, onLogout }) {
 }
 
 function Login({ onLogin }) {
-  const [mode, setMode] = useState("login"); // login | signup
+  const [mode, setMode] = useState("login"); // login | signup | reset
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
@@ -769,6 +769,24 @@ function Login({ onLogin }) {
   const s2 = {width:"100%",padding:"12px 14px",borderRadius:10,border:"1px solid #e2e8f0",fontSize:15,color:"#1e293b",boxSizing:"border-box",outline:"none",marginBottom:12};
 
   const handleAuth = async () => {
+    if (mode === "reset") {
+      if (!email) { setMessage("Indique ton email"); return; }
+      if (!supabaseClient) { setMessage("⚠️ Configuration Supabase manquante"); return; }
+      setLoading(true);
+      setMessage("");
+      try {
+        const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+          redirectTo: window.location.origin + window.location.pathname,
+        });
+        if (error) throw error;
+        setMessage("✅ Email envoyé ! Vérifie ta boîte mail pour réinitialiser ton mot de passe.");
+      } catch (e) {
+        setMessage("❌ " + (e.message || "Erreur"));
+      }
+      setLoading(false);
+      return;
+    }
+
     if (!email || !password) { setMessage("Remplis tous les champs"); return; }
     if (!supabaseClient) { setMessage("⚠️ Configuration Supabase manquante"); return; }
     setLoading(true);
@@ -802,22 +820,36 @@ function Login({ onLogin }) {
           <div style={{color:"#64748b",fontSize:14,marginTop:4}}>Gestion pour artisans & BTP</div>
         </div>
 
-        <div style={{display:"flex",gap:8,marginBottom:24,background:"#f1f5f9",borderRadius:10,padding:4}}>
+        {mode !== "reset" && <div style={{display:"flex",gap:8,marginBottom:24,background:"#f1f5f9",borderRadius:10,padding:4}}>
           <button onClick={()=>{setMode("login");setMessage("");}} style={{flex:1,padding:"10px",borderRadius:8,border:"none",background:mode==="login"?"#1e40af":"transparent",color:mode==="login"?"#fff":"#64748b",fontWeight:600,fontSize:14,cursor:"pointer"}}>Connexion</button>
           <button onClick={()=>{setMode("signup");setMessage("");}} style={{flex:1,padding:"10px",borderRadius:8,border:"none",background:mode==="signup"?"#1e40af":"transparent",color:mode==="signup"?"#fff":"#64748b",fontWeight:600,fontSize:14,cursor:"pointer"}}>Inscription</button>
-        </div>
+        </div>}
+
+        {mode === "reset" && <div style={{textAlign:"center",fontSize:13,color:"#64748b",marginBottom:20,lineHeight:1.5}}>
+          Indique ton email, on t'envoie un lien pour créer un nouveau mot de passe.
+        </div>}
 
         <label style={{display:"block",fontSize:12,fontWeight:700,color:"#64748b",marginBottom:4,textTransform:"uppercase"}}>Email</label>
         <input style={s2} type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="vous@entreprise.fr"/>
 
-        <label style={{display:"block",fontSize:12,fontWeight:700,color:"#64748b",marginBottom:4,textTransform:"uppercase"}}>Mot de passe</label>
-        <input style={s2} type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="••••••••" onKeyDown={e=>e.key==="Enter"&&handleAuth()}/>
+        {mode !== "reset" && <>
+          <label style={{display:"block",fontSize:12,fontWeight:700,color:"#64748b",marginBottom:4,textTransform:"uppercase"}}>Mot de passe</label>
+          <input style={s2} type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="••••••••" onKeyDown={e=>e.key==="Enter"&&handleAuth()}/>
+        </>}
 
         {message && <div style={{padding:"10px 14px",borderRadius:8,background:message.startsWith("✅")?"#f0fdf4":"#fef2f2",color:message.startsWith("✅")?"#16a34a":"#ef4444",fontSize:13,marginBottom:12,lineHeight:1.5}}>{message}</div>}
 
         <button onClick={handleAuth} disabled={loading} style={{width:"100%",padding:"13px",borderRadius:10,border:"none",background:loading?"#94a3b8":"#1e40af",color:"#fff",fontWeight:700,fontSize:15,cursor:loading?"default":"pointer"}}>
-          {loading ? "Chargement..." : (mode==="login" ? "Se connecter" : "Créer mon compte")}
+          {loading ? "Chargement..." : (mode==="login" ? "Se connecter" : mode==="signup" ? "Créer mon compte" : "Envoyer le lien")}
         </button>
+
+        {mode === "login" && <div style={{textAlign:"center",marginTop:14}}>
+          <button onClick={()=>{setMode("reset");setMessage("");}} style={{background:"none",border:"none",color:"#1e40af",fontSize:13,fontWeight:600,cursor:"pointer"}}>Mot de passe oublié ?</button>
+        </div>}
+
+        {mode === "reset" && <div style={{textAlign:"center",marginTop:14}}>
+          <button onClick={()=>{setMode("login");setMessage("");}} style={{background:"none",border:"none",color:"#64748b",fontSize:13,fontWeight:600,cursor:"pointer"}}>← Retour à la connexion</button>
+        </div>}
 
         {mode==="signup" && <div style={{textAlign:"center",fontSize:12,color:"#94a3b8",marginTop:16,lineHeight:1.5}}>
           🎁 14 jours d'essai gratuit<br/>Aucune carte bancaire requise
@@ -953,11 +985,50 @@ function MainApp({ session, onLogout }){
 // ═══════════════════════════════════════════════════════════════
 // WRAPPER AVEC AUTHENTIFICATION
 // ═══════════════════════════════════════════════════════════════
+function NewPassword({ onDone }) {
+  const [password, setPassword] = useState("");
+  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
+  const s2 = {width:"100%",padding:"12px 14px",borderRadius:10,border:"1px solid #e2e8f0",fontSize:15,color:"#1e293b",boxSizing:"border-box",outline:"none",marginBottom:12};
+
+  const valider = async () => {
+    if (!password || password.length < 6) { setMessage("❌ 6 caractères minimum"); return; }
+    setLoading(true);
+    try {
+      const { error } = await supabaseClient.auth.updateUser({ password });
+      if (error) throw error;
+      setMessage("✅ Mot de passe mis à jour !");
+      setTimeout(onDone, 1200);
+    } catch (e) {
+      setMessage("❌ " + (e.message || "Erreur"));
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div style={{minHeight:"100vh",background:"linear-gradient(135deg,#1e3a5f 0%,#1e40af 100%)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Segoe UI',system-ui,sans-serif",padding:20}}>
+      <div style={{background:"#fff",borderRadius:20,padding:36,width:"100%",maxWidth:420,boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
+        <div style={{textAlign:"center",marginBottom:24}}>
+          <div style={{background:"#f59e0b",borderRadius:16,width:56,height:56,display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,margin:"0 auto 12px"}}>🔧</div>
+          <div style={{fontWeight:800,fontSize:20,color:"#1e3a5f"}}>Nouveau mot de passe</div>
+        </div>
+        <label style={{display:"block",fontSize:12,fontWeight:700,color:"#64748b",marginBottom:4,textTransform:"uppercase"}}>Nouveau mot de passe</label>
+        <input style={s2} type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="••••••••" onKeyDown={e=>e.key==="Enter"&&valider()}/>
+        {message && <div style={{padding:"10px 14px",borderRadius:8,background:message.startsWith("✅")?"#f0fdf4":"#fef2f2",color:message.startsWith("✅")?"#16a34a":"#ef4444",fontSize:13,marginBottom:12,lineHeight:1.5}}>{message}</div>}
+        <button onClick={valider} disabled={loading} style={{width:"100%",padding:"13px",borderRadius:10,border:"none",background:loading?"#94a3b8":"#1e40af",color:"#fff",fontWeight:700,fontSize:15,cursor:loading?"default":"pointer"}}>
+          {loading ? "Chargement..." : "Valider le nouveau mot de passe"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function App(){
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
   const [statutAbo, setStatutAbo] = useState(null); // null = pas encore vérifié
   const [checkingAbo, setCheckingAbo] = useState(false);
+  const [modeRecovery, setModeRecovery] = useState(false);
 
   useEffect(() => {
     if (!supabaseClient) { setLoading(false); return; }
@@ -965,7 +1036,8 @@ function App(){
       setSession(data.session);
       setLoading(false);
     });
-    const { data: listener } = supabaseClient.auth.onAuthStateChange((_event, session) => {
+    const { data: listener } = supabaseClient.auth.onAuthStateChange((event, session) => {
+      if (event === "PASSWORD_RECOVERY") setModeRecovery(true);
       setSession(session);
     });
     return () => listener.subscription.unsubscribe();
@@ -1000,6 +1072,10 @@ function App(){
         <div>Chargement de Gest'Chantier...</div>
       </div>
     </div>;
+  }
+
+  if (modeRecovery) {
+    return <NewPassword onDone={() => { setModeRecovery(false); window.location.href = window.location.origin + window.location.pathname; }} />;
   }
 
   if (!session) {
