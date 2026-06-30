@@ -677,6 +677,85 @@ function Parametres({data,api}){
 // ═══════════════════════════════════════════════════════════════
 // ÉCRAN DE CONNEXION / INSCRIPTION
 // ═══════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════
+// HELPERS ABONNEMENT (appels aux Edge Functions Supabase)
+// ═══════════════════════════════════════════════════════════════
+const appelerFonction = async (nom, body) => {
+  if (!supabaseClient) return null;
+  const { data: session } = await supabaseClient.auth.getSession();
+  const token = session?.session?.access_token;
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/${nom}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`,
+      "apikey": SUPABASE_KEY,
+    },
+    body: JSON.stringify(body),
+  });
+  return res.json();
+};
+
+function PageAbonnement({ session, statut, onRefresh }) {
+  const [loading, setLoading] = useState(false);
+
+  const demarrerAbonnement = async () => {
+    setLoading(true);
+    try {
+      const result = await appelerFonction("create-checkout", {
+        userId: session.user.id,
+        email: session.user.email,
+      });
+      if (result?.url) {
+        window.location.href = result.url;
+      } else {
+        alert("Erreur : " + (result?.error || "impossible de démarrer le paiement"));
+      }
+    } catch (e) {
+      alert("Erreur de connexion : " + e.message);
+    }
+    setLoading(false);
+  };
+
+  const expire = statut === "expired" || statut === "no_subscription" || statut === "canceled" || statut === "unpaid";
+
+  return (
+    <div style={{minHeight:"100vh",background:"linear-gradient(135deg,#1e3a5f 0%,#1e40af 100%)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Segoe UI',system-ui,sans-serif",padding:20}}>
+      <div style={{background:"#fff",borderRadius:20,padding:36,width:"100%",maxWidth:440,boxShadow:"0 20px 60px rgba(0,0,0,0.3)",textAlign:"center"}}>
+        <div style={{background:"#f59e0b",borderRadius:16,width:56,height:56,display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,margin:"0 auto 16px"}}>🔧</div>
+        <div style={{fontWeight:800,fontSize:22,color:"#1e3a5f",marginBottom:8}}>
+          {expire ? "Ton essai gratuit est terminé" : "Bienvenue sur Gest'Chantier"}
+        </div>
+        <div style={{color:"#64748b",fontSize:14,marginBottom:24,lineHeight:1.6}}>
+          {expire
+            ? "Pour continuer à utiliser Gest'Chantier, active ton abonnement mensuel."
+            : "Démarre ton essai gratuit de 14 jours, sans engagement."}
+        </div>
+
+        <div style={{background:"#f8fafc",borderRadius:14,padding:20,marginBottom:24}}>
+          <div style={{fontSize:32,fontWeight:800,color:"#1e40af"}}>9,99 €<span style={{fontSize:15,fontWeight:600,color:"#94a3b8"}}>/mois</span></div>
+          <div style={{fontSize:13,color:"#64748b",marginTop:6}}>🎁 14 jours d'essai gratuit inclus</div>
+        </div>
+
+        <ul style={{textAlign:"left",fontSize:13,color:"#475569",marginBottom:24,paddingLeft:20,lineHeight:1.8}}>
+          <li>Gestion illimitée de chantiers, devis et factures</li>
+          <li>Sauvegarde cloud sécurisée</li>
+          <li>Accès depuis tous vos appareils</li>
+          <li>Annulable à tout moment</li>
+        </ul>
+
+        <button onClick={demarrerAbonnement} disabled={loading} style={{width:"100%",padding:"14px",borderRadius:10,border:"none",background:loading?"#94a3b8":"#1e40af",color:"#fff",fontWeight:700,fontSize:15,cursor:loading?"default":"pointer",marginBottom:10}}>
+          {loading ? "Redirection..." : (expire ? "Réactiver mon abonnement" : "Démarrer mon essai gratuit")}
+        </button>
+        <button onClick={onRefresh} style={{width:"100%",padding:"10px",borderRadius:10,border:"none",background:"transparent",color:"#94a3b8",fontWeight:600,fontSize:13,cursor:"pointer"}}>
+          J'ai déjà payé, actualiser
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function Login({ onLogin }) {
   const [mode, setMode] = useState("login"); // login | signup
   const [email, setEmail] = useState("");
@@ -873,6 +952,8 @@ function MainApp({ session, onLogout }){
 function App(){
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [statutAbo, setStatutAbo] = useState(null); // null = pas encore vérifié
+  const [checkingAbo, setCheckingAbo] = useState(false);
 
   useEffect(() => {
     if (!supabaseClient) { setLoading(false); return; }
@@ -886,9 +967,26 @@ function App(){
     return () => listener.subscription.unsubscribe();
   }, []);
 
+  const verifierAbonnement = async (currentSession) => {
+    if (!currentSession?.user?.id) return;
+    setCheckingAbo(true);
+    try {
+      const result = await appelerFonction("check-subscription", { userId: currentSession.user.id });
+      setStatutAbo(result?.status || "no_subscription");
+    } catch (e) {
+      setStatutAbo("no_subscription");
+    }
+    setCheckingAbo(false);
+  };
+
+  useEffect(() => {
+    if (session?.user?.id) verifierAbonnement(session);
+  }, [session?.user?.id]);
+
   const handleLogout = async () => {
     if (supabaseClient) await supabaseClient.auth.signOut();
     setSession(null);
+    setStatutAbo(null);
   };
 
   if (loading) {
@@ -902,6 +1000,20 @@ function App(){
 
   if (!session) {
     return <Login onLogin={(user) => setSession({ user })} />;
+  }
+
+  if (checkingAbo || statutAbo === null) {
+    return <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#1e3a5f",color:"#fff",fontFamily:"system-ui"}}>
+      <div style={{textAlign:"center"}}>
+        <div style={{fontSize:40,marginBottom:12}}>💳</div>
+        <div>Vérification de l'abonnement...</div>
+      </div>
+    </div>;
+  }
+
+  const actif = ["trialing","active"].includes(statutAbo);
+  if (!actif) {
+    return <PageAbonnement session={session} statut={statutAbo} onRefresh={() => verifierAbonnement(session)} />;
   }
 
   return <MainApp session={session} onLogout={handleLogout} />;
