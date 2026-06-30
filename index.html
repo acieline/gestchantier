@@ -7,6 +7,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'Segoe UI',system-ui,sans-serif;background:#f1f5f9;}
@@ -16,6 +17,16 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f1f5f9;}
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useRef, useEffect } = React;
+
+// ═══════════════════════════════════════════════════════════════
+// CONFIGURATION SUPABASE — REMPLACE LES 2 VALEURS CI-DESSOUS
+// ═══════════════════════════════════════════════════════════════
+const SUPABASE_URL = "https://nufgdrrtvnrtjnbozufi.supabase.co";
+const SUPABASE_KEY = "sb_publishable_0gbKeR18XplRBx8OajtpMw_V0M4Q1SL";
+
+const supabaseClient = (SUPABASE_URL.startsWith("http") && window.supabase)
+  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
+  : null;
 const TODAY = new Date().toISOString().split("T")[0];
 const TVA = 0.20;
 
@@ -228,13 +239,13 @@ function LignesEditor({lignes,setLignes}){
 }
 
 // ── AGENDA ────────────────────────────────────────────────────────────────────
-function Agenda({data,setData}){
+function Agenda({data,api}){
   const [showForm,setShowForm]=useState(false);
   const [vue,setVue]=useState("liste");
   const [moisActuel,setMoisActuel]=useState(new Date());
   const [form,setForm]=useState({titre:"",client:"",date:TODAY,heure:"09:00",duree:60,type:"chantier",notes:""});
-  const add=()=>{if(!form.titre.trim())return;setData(d=>({...d,rdv:[...d.rdv,{...form,id:Date.now(),duree:Number(form.duree)}]}));setForm({titre:"",client:"",date:TODAY,heure:"09:00",duree:60,type:"chantier",notes:""});setShowForm(false);};
-  const del=(id)=>setData(d=>({...d,rdv:d.rdv.filter(r=>r.id!==id)}));
+  const add=()=>{if(!form.titre.trim())return;api.ajouterItem("rdv",{...form,duree:Number(form.duree)});setForm({titre:"",client:"",date:TODAY,heure:"09:00",duree:60,type:"chantier",notes:""});setShowForm(false);};
+  const del=(id)=>api.supprimerItem("rdv",id);
   const rdvTries=[...data.rdv].sort((a,b)=>(a.date+a.heure).localeCompare(b.date+b.heure));
   const rdvAvenir=rdvTries.filter(r=>r.date>=TODAY);
   const rdvPasses=rdvTries.filter(r=>r.date<TODAY);
@@ -305,12 +316,12 @@ function Agenda({data,setData}){
 }
 
 // ── TÂCHES ────────────────────────────────────────────────────────────────────
-function Taches({data,setData}){
+function Taches({data,api}){
   const [showForm,setShowForm]=useState(false);
   const [form,setForm]=useState({titre:"",priorite:"moyenne",echeance:""});
-  const add=()=>{if(!form.titre.trim())return;setData(d=>({...d,taches:[...d.taches,{...form,id:Date.now(),fait:false}]}));setForm({titre:"",priorite:"moyenne",echeance:""});setShowForm(false);};
-  const toggle=(id)=>setData(d=>({...d,taches:d.taches.map(t=>t.id===id?{...t,fait:!t.fait}:t)}));
-  const del=(id)=>setData(d=>({...d,taches:d.taches.filter(t=>t.id!==id)}));
+  const add=()=>{if(!form.titre.trim())return;api.ajouterItem("taches",{...form,fait:false});setForm({titre:"",priorite:"moyenne",echeance:""});setShowForm(false);};
+  const toggle=(id)=>{const t=data.taches.find(x=>x.id===id);api.modifierItem("taches",id,{fait:!t.fait});};
+  const del=(id)=>api.supprimerItem("taches",id);
   const todo=data.taches.filter(t=>!t.fait),done=data.taches.filter(t=>t.fait);
   return <div>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}>
@@ -342,12 +353,12 @@ function Taches({data,setData}){
 }
 
 // ── CHANTIERS ─────────────────────────────────────────────────────────────────
-function Chantiers({data,setData}){
+function Chantiers({data,api}){
   const [showForm,setShowForm]=useState(false);
   const [form,setForm]=useState({nom:"",client:"",statut:"en_cours",avancement:0,debut:"",fin:"",notes:""});
-  const add=()=>{if(!form.nom.trim())return;setData(d=>({...d,chantiers:[...d.chantiers,{...form,id:Date.now(),avancement:Number(form.avancement)}]}));setForm({nom:"",client:"",statut:"en_cours",avancement:0,debut:"",fin:"",notes:""});setShowForm(false);};
-  const del=(id)=>setData(d=>({...d,chantiers:d.chantiers.filter(c=>c.id!==id)}));
-  const updStatut=(id,statut)=>setData(d=>({...d,chantiers:d.chantiers.map(c=>c.id===id?{...c,statut}:c)}));
+  const add=()=>{if(!form.nom.trim())return;api.ajouterItem("chantiers",{...form,avancement:Number(form.avancement)});setForm({nom:"",client:"",statut:"en_cours",avancement:0,debut:"",fin:"",notes:""});setShowForm(false);};
+  const del=(id)=>api.supprimerItem("chantiers",id);
+  const updStatut=(id,statut)=>api.modifierItem("chantiers",id,{statut});
   return <div>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}>
       <div><span style={{fontWeight:700,fontSize:20,color:"#1e293b"}}>Chantiers</span><span style={{marginLeft:10,background:"#eff6ff",color:"#1e40af",borderRadius:20,padding:"2px 12px",fontSize:13,fontWeight:600}}>{data.chantiers.length}</span></div>
@@ -383,17 +394,19 @@ function Chantiers({data,setData}){
 }
 
 // ── DEVIS ─────────────────────────────────────────────────────────────────────
-function Devis({data,setData}){
+function Devis({data,api}){
   const [showForm,setShowForm]=useState(false);
   const [apercu,setApercu]=useState(null);
   const [form,setForm]=useState({client:"",adresseClient:"",travaux:"",lignes:[{desc:"",qte:1,pu:0}],statut:"a_faire",echeance:"",notes:""});
   const nextNum=()=>`DEV-${new Date().getFullYear()}-${(data.devis.length+1).toString().padStart(3,"0")}`;
-  const add=()=>{if(!form.client.trim())return;setData(d=>({...d,devis:[...d.devis,{...form,id:Date.now(),numero:nextNum()}]}));setForm({client:"",adresseClient:"",travaux:"",lignes:[{desc:"",qte:1,pu:0}],statut:"a_faire",echeance:"",notes:""});setShowForm(false);};
-  const del=(id)=>setData(d=>({...d,devis:d.devis.filter(dv=>dv.id!==id)}));
-  const updStatut=(id,statut)=>setData(d=>({...d,devis:d.devis.map(dv=>dv.id===id?{...dv,statut}:dv)}));
+  const add=()=>{if(!form.client.trim())return;api.ajouterItem("devis",{...form,numero:nextNum()});setForm({client:"",adresseClient:"",travaux:"",lignes:[{desc:"",qte:1,pu:0}],statut:"a_faire",echeance:"",notes:""});setShowForm(false);};
+  const del=(id)=>api.supprimerItem("devis",id);
+  const updStatut=(id,statut)=>api.modifierItem("devis",id,{statut});
   const convertir=(dv)=>{
     const num=`FAC-${new Date().getFullYear()}-${(data.factures.length+1).toString().padStart(3,"0")}`;
-    setData(d=>({...d,factures:[...d.factures,{...dv,id:Date.now(),numero:num,statut:"envoyee",dateEmission:TODAY,dateEcheance:""}],devis:d.devis.map(d2=>d2.id===dv.id?{...d2,statut:"accepte"}:d2)}));
+    const {id,...sansId}=dv;
+    api.ajouterItem("factures",{...sansId,numero:num,statut:"envoyee",dateEmission:TODAY,dateEcheance:""});
+    api.modifierItem("devis",dv.id,{statut:"accepte"});
     alert(`✅ Facture ${num} créée !`);
   };
   const totalTTC=data.devis.filter(d=>d.statut==="accepte").reduce((s,d)=>s+calcTotaux(d.lignes).ttc,0);
@@ -438,14 +451,14 @@ function Devis({data,setData}){
 }
 
 // ── FACTURES ──────────────────────────────────────────────────────────────────
-function Factures({data,setData}){
+function Factures({data,api}){
   const [showForm,setShowForm]=useState(false);
   const [apercu,setApercu]=useState(null);
   const [form,setForm]=useState({client:"",adresseClient:"",travaux:"",lignes:[{desc:"",qte:1,pu:0}],statut:"envoyee",dateEmission:TODAY,dateEcheance:"",notes:""});
   const nextNum=()=>`FAC-${new Date().getFullYear()}-${(data.factures.length+1).toString().padStart(3,"0")}`;
-  const add=()=>{if(!form.client.trim())return;setData(d=>({...d,factures:[...d.factures,{...form,id:Date.now(),numero:nextNum()}]}));setForm({client:"",adresseClient:"",travaux:"",lignes:[{desc:"",qte:1,pu:0}],statut:"envoyee",dateEmission:TODAY,dateEcheance:"",notes:""});setShowForm(false);};
-  const del=(id)=>setData(d=>({...d,factures:d.factures.filter(f=>f.id!==id)}));
-  const updStatut=(id,statut)=>setData(d=>({...d,factures:d.factures.map(f=>f.id===id?{...f,statut}:f)}));
+  const add=()=>{if(!form.client.trim())return;api.ajouterItem("factures",{...form,numero:nextNum()});setForm({client:"",adresseClient:"",travaux:"",lignes:[{desc:"",qte:1,pu:0}],statut:"envoyee",dateEmission:TODAY,dateEcheance:"",notes:""});setShowForm(false);};
+  const del=(id)=>api.supprimerItem("factures",id);
+  const updStatut=(id,statut)=>api.modifierItem("factures",id,{statut});
   const totalPaye=data.factures.filter(f=>f.statut==="payee").reduce((s,f)=>s+calcTotaux(f.lignes).ttc,0);
   const totalAttente=data.factures.filter(f=>f.statut!=="payee").reduce((s,f)=>s+calcTotaux(f.lignes).ttc,0);
   return <div>
@@ -537,13 +550,13 @@ function Dashboard({data}){
 }
 
 // CLIENTS
-function Clients({data,setData}){
+function Clients({data,api}){
   const [showForm,setShowForm]=useState(false);
   const [sel,setSel]=useState(null);
   const [form,setForm]=useState({nom:"",entreprise:"",email:"",tel:"",adresse:"",notes:""});
   const s2={width:"100%",padding:"8px 10px",borderRadius:8,border:"1px solid #e2e8f0",fontSize:14,color:"#1e293b",boxSizing:"border-box",outline:"none"};
-  const add=()=>{if(!form.nom.trim())return;setData(d=>({...d,clients:[...d.clients,{...form,id:Date.now()}]}));setForm({nom:"",entreprise:"",email:"",tel:"",adresse:"",notes:""});setShowForm(false);};
-  const del=(id)=>setData(d=>({...d,clients:d.clients.filter(c=>c.id!==id)}));
+  const add=()=>{if(!form.nom.trim())return;api.ajouterItem("clients",{...form});setForm({nom:"",entreprise:"",email:"",tel:"",adresse:"",notes:""});setShowForm(false);};
+  const del=(id)=>api.supprimerItem("clients",id);
   return <div>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}>
       <div><span style={{fontWeight:700,fontSize:20,color:"#1e293b"}}>Clients</span><span style={{marginLeft:10,background:"#eff6ff",color:"#1e40af",borderRadius:20,padding:"2px 12px",fontSize:13,fontWeight:600}}>{(data.clients||[]).length}</span></div>
@@ -592,12 +605,12 @@ function Clients({data,setData}){
 }
 
 // TEMPS
-function Temps({data,setData}){
+function Temps({data,api}){
   const [showForm,setShowForm]=useState(false);
   const [form,setForm]=useState({chantier:"",date:TODAY,heures:8,description:"",ouvrier:""});
   const s2={width:"100%",padding:"8px 10px",borderRadius:8,border:"1px solid #e2e8f0",fontSize:14,color:"#1e293b",boxSizing:"border-box",outline:"none"};
-  const add=()=>{if(!form.chantier)return;setData(d=>({...d,temps:[...d.temps,{...form,id:Date.now(),heures:+form.heures}]}));setForm({chantier:"",date:TODAY,heures:8,description:"",ouvrier:""});setShowForm(false);};
-  const del=(id)=>setData(d=>({...d,temps:d.temps.filter(t=>t.id!==id)}));
+  const add=()=>{if(!form.chantier)return;api.ajouterItem("temps",{...form,heures:+form.heures});setForm({chantier:"",date:TODAY,heures:8,description:"",ouvrier:""});setShowForm(false);};
+  const del=(id)=>api.supprimerItem("temps",id);
   const total=(data.temps||[]).reduce((s,t)=>s+(+t.heures||0),0);
   const parC={};(data.temps||[]).forEach(t=>{parC[t.chantier]=(parC[t.chantier]||0)+(+t.heures||0);});
   const tries=[...(data.temps||[])].sort((a,b)=>b.date.localeCompare(a.date));
@@ -638,11 +651,11 @@ function Temps({data,setData}){
 }
 
 // PARAMÈTRES
-function Parametres({data,setData}){
+function Parametres({data,api}){
   const [form,setForm]=useState(data.entreprise||{nom:"",siret:"",adresse:"",cp:"",ville:"",tel:"",email:"",tva:""});
   const [saved,setSaved]=useState(false);
   const s2={width:"100%",padding:"8px 10px",borderRadius:8,border:"1px solid #e2e8f0",fontSize:14,color:"#1e293b",boxSizing:"border-box",outline:"none"};
-  const save=()=>{setData(d=>({...d,entreprise:form}));setSaved(true);setTimeout(()=>setSaved(false),2000);};
+  const save=()=>{api.sauverEntreprise(form);setSaved(true);setTimeout(()=>setSaved(false),2000);};
   return <div>
     <div style={{fontWeight:700,fontSize:20,color:"#1e293b",marginBottom:18}}>⚙️ Paramètres entreprise</div>
     <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:14,padding:20,marginBottom:16}}>
@@ -660,39 +673,154 @@ function Parametres({data,setData}){
   </div>;
 }
 
-function App(){
+
+// ═══════════════════════════════════════════════════════════════
+// ÉCRAN DE CONNEXION / INSCRIPTION
+// ═══════════════════════════════════════════════════════════════
+function Login({ onLogin }) {
+  const [mode, setMode] = useState("login"); // login | signup
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const s2 = {width:"100%",padding:"12px 14px",borderRadius:10,border:"1px solid #e2e8f0",fontSize:15,color:"#1e293b",boxSizing:"border-box",outline:"none",marginBottom:12};
+
+  const handleAuth = async () => {
+    if (!email || !password) { setMessage("Remplis tous les champs"); return; }
+    if (!supabaseClient) { setMessage("⚠️ Configuration Supabase manquante"); return; }
+    setLoading(true);
+    setMessage("");
+    try {
+      if (mode === "signup") {
+        const { data, error } = await supabaseClient.auth.signUp({ email, password });
+        if (error) throw error;
+        setMessage("✅ Compte créé ! Vérifie ta boîte email pour confirmer ton inscription.");
+      } else {
+        const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        onLogin(data.user);
+      }
+    } catch (e) {
+      const msg = e.message || "Erreur";
+      if (msg.includes("Invalid login")) setMessage("❌ Email ou mot de passe incorrect");
+      else if (msg.includes("already registered")) setMessage("❌ Cet email est déjà inscrit");
+      else if (msg.includes("Email not confirmed")) setMessage("⚠️ Confirme d'abord ton email (vérifie ta boîte)");
+      else setMessage("❌ " + msg);
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div style={{minHeight:"100vh",background:"linear-gradient(135deg,#1e3a5f 0%,#1e40af 100%)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Segoe UI',system-ui,sans-serif",padding:20}}>
+      <div style={{background:"#fff",borderRadius:20,padding:36,width:"100%",maxWidth:420,boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
+        <div style={{textAlign:"center",marginBottom:28}}>
+          <div style={{background:"#f59e0b",borderRadius:16,width:56,height:56,display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,margin:"0 auto 12px"}}>🔧</div>
+          <div style={{fontWeight:800,fontSize:24,color:"#1e3a5f"}}>Gest'Chantier</div>
+          <div style={{color:"#64748b",fontSize:14,marginTop:4}}>Gestion pour artisans & BTP</div>
+        </div>
+
+        <div style={{display:"flex",gap:8,marginBottom:24,background:"#f1f5f9",borderRadius:10,padding:4}}>
+          <button onClick={()=>{setMode("login");setMessage("");}} style={{flex:1,padding:"10px",borderRadius:8,border:"none",background:mode==="login"?"#1e40af":"transparent",color:mode==="login"?"#fff":"#64748b",fontWeight:600,fontSize:14,cursor:"pointer"}}>Connexion</button>
+          <button onClick={()=>{setMode("signup");setMessage("");}} style={{flex:1,padding:"10px",borderRadius:8,border:"none",background:mode==="signup"?"#1e40af":"transparent",color:mode==="signup"?"#fff":"#64748b",fontWeight:600,fontSize:14,cursor:"pointer"}}>Inscription</button>
+        </div>
+
+        <label style={{display:"block",fontSize:12,fontWeight:700,color:"#64748b",marginBottom:4,textTransform:"uppercase"}}>Email</label>
+        <input style={s2} type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="vous@entreprise.fr"/>
+
+        <label style={{display:"block",fontSize:12,fontWeight:700,color:"#64748b",marginBottom:4,textTransform:"uppercase"}}>Mot de passe</label>
+        <input style={s2} type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="••••••••" onKeyDown={e=>e.key==="Enter"&&handleAuth()}/>
+
+        {message && <div style={{padding:"10px 14px",borderRadius:8,background:message.startsWith("✅")?"#f0fdf4":"#fef2f2",color:message.startsWith("✅")?"#16a34a":"#ef4444",fontSize:13,marginBottom:12,lineHeight:1.5}}>{message}</div>}
+
+        <button onClick={handleAuth} disabled={loading} style={{width:"100%",padding:"13px",borderRadius:10,border:"none",background:loading?"#94a3b8":"#1e40af",color:"#fff",fontWeight:700,fontSize:15,cursor:loading?"default":"pointer"}}>
+          {loading ? "Chargement..." : (mode==="login" ? "Se connecter" : "Créer mon compte")}
+        </button>
+
+        {mode==="signup" && <div style={{textAlign:"center",fontSize:12,color:"#94a3b8",marginTop:16,lineHeight:1.5}}>
+          🎁 14 jours d'essai gratuit<br/>Aucune carte bancaire requise
+        </div>}
+      </div>
+    </div>
+  );
+}
+
+// Tables synchronisées avec Supabase
+const TABLES = ["clients","chantiers","devis","factures","rdv","taches","temps"];
+
+const versDB = (item, table) => {
+  const o = {...item};
+  delete o.id;
+  if (o.dateEmission !== undefined) { o.date_emission = o.dateEmission || null; delete o.dateEmission; }
+  if (o.dateEcheance !== undefined) { o.date_echeance = o.dateEcheance || null; delete o.dateEcheance; }
+  if (o.adresseClient !== undefined) { o.adresse_client = o.adresseClient; delete o.adresseClient; }
+  ["echeance","debut","fin","date"].forEach(k => { if (o[k] === "") o[k] = null; });
+  return o;
+};
+const depuisDB = (row) => {
+  const o = {...row};
+  if (o.date_emission !== undefined) { o.dateEmission = o.date_emission; delete o.date_emission; }
+  if (o.date_echeance !== undefined) { o.dateEcheance = o.date_echeance; delete o.date_echeance; }
+  if (o.adresse_client !== undefined) { o.adresseClient = o.adresse_client; delete o.adresse_client; }
+  return o;
+};
+
+function MainApp({ session, onLogout }){
   const [tab,setTab]=useState("dashboard");
+  const [data,setData]=useState({
+    clients:[], chantiers:[], devis:[], factures:[], rdv:[], taches:[], temps:[],
+    entreprise:{nom:"",siret:"",adresse:"",cp:"",ville:"",tel:"",email:"",tva:""},
+  });
+  const [chargement, setChargement] = useState(true);
 
-  // Chargement depuis la mémoire du navigateur
-  const chargerDonnees = () => {
-    try {
-      const sauvegarde = localStorage.getItem("gestchantier_data");
-      if (sauvegarde) return JSON.parse(sauvegarde);
-    } catch(e) {}
-    return null;
-  };
-
-  const donneesInitiales = chargerDonnees() || {...INITIAL_DATA,
-    clients:[
-      {id:1,nom:"M. Martin",entreprise:"",email:"martin@email.fr",tel:"06 11 22 33 44",adresse:"5 rue des Lilas, 75016 Paris",notes:"Client fidèle"},
-      {id:2,nom:"SCI Dupont",entreprise:"SCI Dupont",email:"contact@scidupont.fr",tel:"01 23 45 67 89",adresse:"12 av. Haussmann, 75009 Paris",notes:""},
-      {id:3,nom:"Mme Leblanc",entreprise:"",email:"leblanc@email.fr",tel:"06 55 44 33 22",adresse:"8 chemin du Moulin, 69001 Lyon",notes:""},
-    ],
-    temps:[
-      {id:1,chantier:"Villa Martin – Extension",date:"2026-06-20",heures:8,description:"Pose plomberie RDC",ouvrier:"Chef de chantier"},
-      {id:2,chantier:"Immeuble Dupont – Rénovation",date:"2026-06-22",heures:8,description:"Dépose cloisons",ouvrier:"Équipe 2"},
-    ],
-    entreprise:{nom:"Gest'Chantier BTP",siret:"123 456 789 00012",adresse:"12 rue des Artisans",cp:"75001",ville:"Paris",tel:"06 12 34 56 78",email:"contact@gestchantier.fr",tva:"FR12345678900"},
-  };
-
-  const [data,setData]=useState(donneesInitiales);
-
-  // Sauvegarde automatique à chaque modification
   useEffect(() => {
-    try {
-      localStorage.setItem("gestchantier_data", JSON.stringify(data));
-    } catch(e) {}
-  }, [data]);
+    const charger = async () => {
+      if (!supabaseClient) { setChargement(false); return; }
+      const nouvelles = {};
+      for (const table of TABLES) {
+        const { data: rows, error } = await supabaseClient.from(table).select("*").order("created_at",{ascending:true});
+        nouvelles[table] = error ? [] : (rows||[]).map(depuisDB);
+      }
+      const { data: prof } = await supabaseClient.from("profils").select("*").eq("id", session.user.id).maybeSingle();
+      nouvelles.entreprise = prof || {nom:"",siret:"",adresse:"",cp:"",ville:"",tel:"",email:session.user.email,tva:""};
+      setData(d => ({...d, ...nouvelles}));
+      setChargement(false);
+    };
+    charger();
+  }, []);
+
+  const ajouterItem = async (table, item) => {
+    if (!supabaseClient) return;
+    const payload = {...versDB(item, table), user_id: session.user.id};
+    const { data: row, error } = await supabaseClient.from(table).insert(payload).select().single();
+    if (!error && row) setData(d => ({...d, [table]: [...d[table], depuisDB(row)]}));
+    else if (error) alert("Erreur : " + error.message);
+  };
+  const supprimerItem = async (table, id) => {
+    if (!supabaseClient) return;
+    await supabaseClient.from(table).delete().eq("id", id);
+    setData(d => ({...d, [table]: d[table].filter(x => x.id !== id)}));
+  };
+  const modifierItem = async (table, id, champs) => {
+    if (!supabaseClient) return;
+    await supabaseClient.from(table).update(versDB({...champs}, table)).eq("id", id);
+    setData(d => ({...d, [table]: d[table].map(x => x.id === id ? {...x, ...champs} : x)}));
+  };
+  const sauverEntreprise = async (entreprise) => {
+    if (!supabaseClient) return;
+    await supabaseClient.from("profils").upsert({...entreprise, id: session.user.id});
+    setData(d => ({...d, entreprise}));
+  };
+  const api = { ajouterItem, supprimerItem, modifierItem, sauverEntreprise };
+
+  if (chargement) {
+    return <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#f1f5f9",fontFamily:"system-ui"}}>
+      <div style={{textAlign:"center",color:"#64748b"}}>
+        <div style={{fontSize:36,marginBottom:12}}>☁️</div>
+        <div>Chargement de vos données...</div>
+      </div>
+    </div>;
+  }
   const rdvAuj=data.rdv.filter(r=>r.date===TODAY);
   const tabs=[
     {id:"dashboard",emoji:"🏠",title:"Accueil",count:0},
@@ -725,17 +853,58 @@ function App(){
     <div style={{flex:1,overflowY:"auto"}}>
       <div style={{maxWidth:760,margin:"0 auto",padding:20}}>
         {tab==="dashboard"&&<Dashboard data={data}/>}
-        {tab==="agenda"&&<Agenda data={data} setData={setData}/>}
-        {tab==="taches"&&<Taches data={data} setData={setData}/>}
-        {tab==="clients"&&<Clients data={data} setData={setData}/>}
-        {tab==="chantiers"&&<Chantiers data={data} setData={setData}/>}
-        {tab==="devis"&&<Devis data={data} setData={setData}/>}
-        {tab==="factures"&&<Factures data={data} setData={setData}/>}
-        {tab==="temps"&&<Temps data={data} setData={setData}/>}
-        {tab==="parametres"&&<Parametres data={data} setData={setData}/>}
+        {tab==="agenda"&&<Agenda data={data} api={api}/>}
+        {tab==="taches"&&<Taches data={data} api={api}/>}
+        {tab==="clients"&&<Clients data={data} api={api}/>}
+        {tab==="chantiers"&&<Chantiers data={data} api={api}/>}
+        {tab==="devis"&&<Devis data={data} api={api}/>}
+        {tab==="factures"&&<Factures data={data} api={api}/>}
+        {tab==="temps"&&<Temps data={data} api={api}/>}
+        {tab==="parametres"&&<Parametres data={data} api={api}/>}
       </div>
     </div>
   </div>;
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+// WRAPPER AVEC AUTHENTIFICATION
+// ═══════════════════════════════════════════════════════════════
+function App(){
+  const [session, setSession] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!supabaseClient) { setLoading(false); return; }
+    supabaseClient.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+      setLoading(false);
+    });
+    const { data: listener } = supabaseClient.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+    return () => listener.subscription.unsubscribe();
+  }, []);
+
+  const handleLogout = async () => {
+    if (supabaseClient) await supabaseClient.auth.signOut();
+    setSession(null);
+  };
+
+  if (loading) {
+    return <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#1e3a5f",color:"#fff",fontFamily:"system-ui"}}>
+      <div style={{textAlign:"center"}}>
+        <div style={{fontSize:40,marginBottom:12}}>🔧</div>
+        <div>Chargement de Gest'Chantier...</div>
+      </div>
+    </div>;
+  }
+
+  if (!session) {
+    return <Login onLogin={(user) => setSession({ user })} />;
+  }
+
+  return <MainApp session={session} onLogout={handleLogout} />;
 }
 
 ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
