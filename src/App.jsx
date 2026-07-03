@@ -2,6 +2,20 @@ const { useState, useRef } = React;
 const TODAY = new Date().toISOString().split("T")[0];
 const TVA = 0.20;
 
+// ── DESIGN TOKENS ─────────────────────────────────────────────────────────────
+const COLORS = {
+  ink:"#1C2321", inkSoft:"#6B7570", bg:"#F5F3EE", surface:"#FFFFFF", line:"#E7E3DA", lineSoft:"#F0EDE6",
+  accent:"#E8600C", accentBg:"#FDEBE0",
+  blueprint:"#2F4858", blueprintBg:"#EAF0F4",
+  success:"#2F855A", successBg:"#E7F3EC",
+  pending:"#C98A02", pendingBg:"#FBF1DD",
+  danger:"#C1392B", dangerBg:"#FBEAE7",
+  violet:"#6B4FA0", violetBg:"#F1EAF9",
+};
+const FONT_DISPLAY = "'Barlow Semi Condensed', sans-serif";
+const FONT_BODY = "'Inter', system-ui, sans-serif";
+const FONT_MONO = "'IBM Plex Mono', monospace";
+
 const INITIAL_DATA = {
   entreprise: {
     nom: "Gest'Chantier BTP", siret:"123 456 789 00012", adresse:"12 rue des Artisans", cp:"75001", ville:"Paris", tel:"06 12 34 56 78", email:"contact@gestchantier.fr",
@@ -32,97 +46,131 @@ const INITIAL_DATA = {
 };
 
 const PRIORITE_CONFIG = {
-  haute:{label:"Haute",color:"#ef4444",bg:"#fef2f2"},
-  moyenne:{label:"Moyenne",color:"#f59e0b",bg:"#fffbeb"},
-  basse:{label:"Basse",color:"#22c55e",bg:"#f0fdf4"},
+  haute:{label:"Haute",color:COLORS.danger,bg:COLORS.dangerBg},
+  moyenne:{label:"Moyenne",color:COLORS.pending,bg:COLORS.pendingBg},
+  basse:{label:"Basse",color:COLORS.success,bg:COLORS.successBg},
 };
 const STATUT_CHANTIER = {
-  en_attente:{label:"En attente",color:"#6b7280",bg:"#f3f4f6"},
-  en_cours:{label:"En cours",color:"#3b82f6",bg:"#eff6ff"},
-  termine:{label:"Terminé",color:"#22c55e",bg:"#f0fdf4"},
-  pause:{label:"En pause",color:"#f59e0b",bg:"#fffbeb"},
+  en_attente:{label:"En attente",color:COLORS.inkSoft,bg:COLORS.lineSoft},
+  en_cours:{label:"En cours",color:COLORS.blueprint,bg:COLORS.blueprintBg},
+  termine:{label:"Terminé",color:COLORS.success,bg:COLORS.successBg},
+  pause:{label:"En pause",color:COLORS.pending,bg:COLORS.pendingBg},
 };
 const STATUT_DEVIS = {
-  a_faire:{label:"À faire",color:"#ef4444",bg:"#fef2f2"},
-  envoye:{label:"Envoyé",color:"#f59e0b",bg:"#fffbeb"},
-  accepte:{label:"Accepté ✓",color:"#22c55e",bg:"#f0fdf4"},
-  refuse:{label:"Refusé",color:"#6b7280",bg:"#f3f4f6"},
+  a_faire:{label:"À faire",color:COLORS.danger,bg:COLORS.dangerBg},
+  envoye:{label:"Envoyé",color:COLORS.pending,bg:COLORS.pendingBg},
+  accepte:{label:"Accepté ✓",color:COLORS.success,bg:COLORS.successBg},
+  refuse:{label:"Refusé",color:COLORS.inkSoft,bg:COLORS.lineSoft},
 };
 const STATUT_FACTURE = {
-  brouillon:{label:"Brouillon",color:"#6b7280",bg:"#f3f4f6"},
-  envoyee:{label:"Envoyée",color:"#f59e0b",bg:"#fffbeb"},
-  payee:{label:"Payée ✓",color:"#22c55e",bg:"#f0fdf4"},
-  impayee:{label:"Impayée !",color:"#ef4444",bg:"#fef2f2"},
+  brouillon:{label:"Brouillon",color:COLORS.inkSoft,bg:COLORS.lineSoft},
+  envoyee:{label:"Envoyée",color:COLORS.pending,bg:COLORS.pendingBg},
+  payee:{label:"Payée ✓",color:COLORS.success,bg:COLORS.successBg},
+  impayee:{label:"Impayée !",color:COLORS.danger,bg:COLORS.dangerBg},
 };
 const TYPE_RDV = {
-  chantier:{label:"Chantier",color:"#3b82f6",bg:"#eff6ff",emoji:"🏗️"},
-  devis:{label:"Devis",color:"#f59e0b",bg:"#fffbeb",emoji:"📋"},
-  client:{label:"Client",color:"#8b5cf6",bg:"#f5f3ff",emoji:"👤"},
-  autre:{label:"Autre",color:"#6b7280",bg:"#f3f4f6",emoji:"📅"},
+  chantier:{label:"Chantier",color:COLORS.blueprint,bg:COLORS.blueprintBg,emoji:"🏗️"},
+  devis:{label:"Devis",color:COLORS.pending,bg:COLORS.pendingBg,emoji:"📋"},
+  client:{label:"Client",color:COLORS.violet,bg:COLORS.violetBg,emoji:"👤"},
+  autre:{label:"Autre",color:COLORS.inkSoft,bg:COLORS.lineSoft,emoji:"📅"},
 };
 const JOURS=["Dim","Lun","Mar","Mer","Jeu","Ven","Sam"];
 const MOIS=["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
 
-const inp={width:"100%",padding:"8px 10px",borderRadius:8,border:"1px solid #e2e8f0",fontSize:14,color:"#1e293b",boxSizing:"border-box",outline:"none"};
-const btnP={background:"#1e40af",color:"#fff",border:"none",borderRadius:8,padding:"9px 20px",fontWeight:600,fontSize:14,cursor:"pointer"};
-const btnS={background:"#f1f5f9",color:"#475569",border:"1px solid #e2e8f0",borderRadius:8,padding:"8px 16px",fontWeight:600,fontSize:13,cursor:"pointer"};
-const btnD={background:"#fee2e2",color:"#ef4444",border:"none",borderRadius:8,padding:"6px 14px",fontWeight:600,fontSize:13,cursor:"pointer"};
-const btnG={background:"#f0fdf4",color:"#16a34a",border:"1px solid #bbf7d0",borderRadius:8,padding:"8px 14px",fontWeight:600,fontSize:13,cursor:"pointer"};
+const inp={width:"100%",padding:"8px 10px",borderRadius:8,border:`1px solid ${COLORS.line}`,fontSize:14,color:COLORS.ink,boxSizing:"border-box",outline:"none",fontFamily:FONT_BODY};
+const btnP={background:COLORS.accent,color:"#fff",border:"none",borderRadius:8,padding:"9px 18px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:FONT_BODY};
+const btnS={background:COLORS.surface,color:COLORS.inkSoft,border:`1px solid ${COLORS.line}`,borderRadius:8,padding:"7px 14px",fontWeight:600,fontSize:12.5,cursor:"pointer",fontFamily:FONT_BODY};
+const btnD={background:COLORS.dangerBg,color:COLORS.danger,border:"none",borderRadius:8,padding:"6px 12px",fontWeight:600,fontSize:12.5,cursor:"pointer",fontFamily:FONT_BODY};
+const btnG={background:COLORS.successBg,color:COLORS.success,border:`1px solid ${COLORS.success}30`,borderRadius:8,padding:"7px 12px",fontWeight:600,fontSize:12.5,cursor:"pointer",fontFamily:FONT_BODY};
 
 const calcTotaux=(lignes)=>{const ht=(lignes||[]).reduce((s,l)=>s+(Number(l.qte)||0)*(Number(l.pu)||0),0);return{ht,tva:ht*TVA,ttc:ht*(1+TVA)};};
 
-function Badge({config,value}){const c=config[value]||{};return <span style={{background:c.bg,color:c.color,border:`1px solid ${c.color}30`,borderRadius:6,padding:"2px 10px",fontSize:12,fontWeight:600}}>{c.label||value}</span>;}
+// ── ICÔNES ────────────────────────────────────────────────────────────────────
+function Icon({name,size=17,color="currentColor",style}){
+  const P = {
+    home: <><path d="M3 11l9-8 9 8"/><path d="M5 9v11h14V9"/></>,
+    calendar: <><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></>,
+    check: <><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></>,
+    users: <><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></>,
+    building: <><path d="M2 20h20M4 20V10l4-3 4 3v10M12 20V6l4-3 4 3v14"/></>,
+    file: <><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6"/></>,
+    receipt: <><path d="M4 2h16v20l-3-2-3 2-3-2-3 2-3-2-3 2z"/><path d="M8 8h8M8 12h8M8 16h5"/></>,
+    clock: <><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></>,
+    settings: <><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09A1.65 1.65 0 0015 4.6a1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></>,
+    alert: <><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></>,
+    money: <><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></>,
+    hourglass: <><path d="M6 2h12M6 22h12M6 2c0 6 6 6 6 10s-6 4-6 10M18 2c0 6-6 6-6 10s6 4 6 10"/></>,
+    plus: <><path d="M12 5v14M5 12h14"/></>,
+  };
+  return <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>{P[name]}</svg>;
+}
+
+function GlobalStyle(){
+  return <style dangerouslySetInnerHTML={{__html:`
+    @import url('https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap');
+    *{box-sizing:border-box;}
+    body{margin:0;}
+    select{-webkit-appearance:none;appearance:none;}
+  `}}/>;
+}
+
+function Badge({config,value}){
+  const c=config[value]||{};
+  return <span style={{display:"inline-flex",alignItems:"center",gap:6,fontFamily:FONT_MONO,fontSize:10.5,fontWeight:600,letterSpacing:0.3,textTransform:"uppercase",padding:"3px 10px 3px 8px",borderRadius:4,background:c.bg,color:c.color,borderBottom:`1.5px dashed ${c.color}`}}>
+    <span style={{width:6,height:6,borderRadius:"50%",border:`1.5px solid ${c.color}`,background:c.bg,flexShrink:0}}/>
+    {c.label||value}
+  </span>;
+}
 
 function Modal({title,onClose,children,wide}){
-  return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
-    <div style={{background:"#fff",borderRadius:16,padding:28,width:"100%",maxWidth:wide?740:500,boxShadow:"0 8px 40px rgba(0,0,0,0.2)",maxHeight:"92vh",overflowY:"auto"}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
-        <span style={{fontWeight:700,fontSize:17,color:"#1e293b"}}>{title}</span>
-        <button onClick={onClose} style={{background:"none",border:"none",fontSize:24,cursor:"pointer",color:"#94a3b8"}}>×</button>
+  return <div style={{position:"fixed",inset:0,background:"rgba(28,35,33,0.5)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+    <div style={{background:COLORS.surface,borderRadius:16,padding:26,width:"100%",maxWidth:wide?740:500,boxShadow:"0 8px 40px rgba(28,35,33,0.25)",maxHeight:"92vh",overflowY:"auto",fontFamily:FONT_BODY}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}>
+        <span style={{fontWeight:700,fontSize:18,color:COLORS.ink,fontFamily:FONT_DISPLAY}}>{title}</span>
+        <button onClick={onClose} style={{background:"none",border:"none",fontSize:24,cursor:"pointer",color:COLORS.inkSoft}}>×</button>
       </div>
       {children}
     </div>
   </div>;
 }
 
-function IR({label,children}){return <div style={{marginBottom:12}}><label style={{display:"block",fontSize:12,fontWeight:600,color:"#64748b",marginBottom:4}}>{label}</label>{children}</div>;}
+function IR({label,children}){return <div style={{marginBottom:12}}><label style={{display:"block",fontSize:11.5,fontWeight:600,color:COLORS.inkSoft,marginBottom:4,fontFamily:FONT_BODY}}>{label}</label>{children}</div>;}
 
 // ── APERÇU DOCUMENT ───────────────────────────────────────────────────────────
 function ApercuDoc({doc,type,entreprise,onClose}){
   const {ht,tva,ttc}=calcTotaux(doc.lignes);
-  const ref=useRef();
   const imprimer=()=>{
     const w=window.open('','_blank');
     w.document.write(`<html><head><title>${doc.numero}</title><style>
-      body{font-family:Arial,sans-serif;color:#1e293b;padding:40px;max-width:800px;margin:0 auto}
+      body{font-family:Arial,sans-serif;color:${COLORS.ink};padding:40px;max-width:800px;margin:0 auto}
       .row{display:flex;justify-content:space-between;margin-bottom:40px}
-      .titre{font-size:32px;font-weight:800;color:#1e40af;text-align:right}
+      .titre{font-size:32px;font-weight:800;color:${COLORS.blueprint};text-align:right}
       table{width:100%;border-collapse:collapse;margin:24px 0}
-      th{background:#1e3a5f;color:white;padding:10px 12px;text-align:left;font-size:13px}
-      td{padding:10px 12px;border-bottom:1px solid #e2e8f0;font-size:13px}
-      tr:nth-child(even) td{background:#f8fafc}
+      th{background:${COLORS.ink};color:white;padding:10px 12px;text-align:left;font-size:13px}
+      td{padding:10px 12px;border-bottom:1px solid ${COLORS.line};font-size:13px}
+      tr:nth-child(even) td{background:${COLORS.lineSoft}}
       .totaux{text-align:right;margin-top:16px}
-      .tl{display:flex;justify-content:flex-end;gap:60px;padding:5px 0;font-size:14px;color:#475569}
-      .ttc{font-size:20px;font-weight:800;color:#1e40af;border-top:2px solid #1e40af;padding-top:10px;margin-top:6px}
-      .foot{margin-top:60px;font-size:11px;color:#94a3b8;text-align:center;border-top:1px solid #e2e8f0;padding-top:16px}
+      .tl{display:flex;justify-content:flex-end;gap:60px;padding:5px 0;font-size:14px;color:${COLORS.inkSoft}}
+      .ttc{font-size:20px;font-weight:800;color:${COLORS.accent};border-top:2px solid ${COLORS.accent};padding-top:10px;margin-top:6px}
+      .foot{margin-top:60px;font-size:11px;color:${COLORS.inkSoft};text-align:center;border-top:1px solid ${COLORS.line};padding-top:16px}
     </style></head><body>
       <div class="row">
-        <div><div style="font-weight:800;font-size:20px;color:#1e3a5f">${entreprise.nom}</div>
-          <div style="font-size:13px;color:#64748b;margin-top:6px">${entreprise.adresse}<br>${entreprise.cp} ${entreprise.ville}<br>📞 ${entreprise.tel}<br>✉️ ${entreprise.email}</div>
-          <div style="font-size:11px;color:#94a3b8;margin-top:8px">SIRET : ${entreprise.siret}</div>
+        <div><div style="font-weight:800;font-size:20px;color:${COLORS.ink}">${entreprise.nom}</div>
+          <div style="font-size:13px;color:${COLORS.inkSoft};margin-top:6px">${entreprise.adresse}<br>${entreprise.cp} ${entreprise.ville}<br>📞 ${entreprise.tel}<br>✉️ ${entreprise.email}</div>
+          <div style="font-size:11px;color:${COLORS.inkSoft};margin-top:8px">SIRET : ${entreprise.siret}</div>
         </div>
         <div><div class="titre">${type==="facture"?"FACTURE":"DEVIS"}</div>
-          <div style="font-size:15px;font-weight:600;color:#475569;text-align:right;margin-top:4px">${doc.numero}</div>
-          <div style="font-size:13px;color:#94a3b8;text-align:right;margin-top:8px">Date : ${new Date((doc.dateEmission||TODAY)+"T12:00:00").toLocaleDateString("fr-FR")}</div>
-          ${doc.dateEcheance?`<div style="font-size:13px;color:#94a3b8;text-align:right">Échéance : ${new Date(doc.dateEcheance+"T12:00:00").toLocaleDateString("fr-FR")}</div>`:""}
+          <div style="font-size:15px;font-weight:600;color:${COLORS.inkSoft};text-align:right;margin-top:4px">${doc.numero}</div>
+          <div style="font-size:13px;color:${COLORS.inkSoft};text-align:right;margin-top:8px">Date : ${new Date((doc.dateEmission||TODAY)+"T12:00:00").toLocaleDateString("fr-FR")}</div>
+          ${doc.dateEcheance?`<div style="font-size:13px;color:${COLORS.inkSoft};text-align:right">Échéance : ${new Date(doc.dateEcheance+"T12:00:00").toLocaleDateString("fr-FR")}</div>`:""}
         </div>
       </div>
-      <div style="background:#f8fafc;border-radius:8px;padding:16px;margin-bottom:24px">
-        <div style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-bottom:6px">Destinataire</div>
+      <div style="background:${COLORS.lineSoft};border-radius:8px;padding:16px;margin-bottom:24px">
+        <div style="font-size:11px;font-weight:700;color:${COLORS.inkSoft};text-transform:uppercase;margin-bottom:6px">Destinataire</div>
         <div style="font-weight:700;font-size:16px">${doc.client}</div>
-        ${doc.adresseClient?`<div style="font-size:13px;color:#64748b;margin-top:4px">${doc.adresseClient}</div>`:""}
+        ${doc.adresseClient?`<div style="font-size:13px;color:${COLORS.inkSoft};margin-top:4px">${doc.adresseClient}</div>`:""}
       </div>
-      <div style="margin-bottom:16px"><span style="font-size:12px;font-weight:700;color:#94a3b8;text-transform:uppercase">Objet : </span><span style="font-size:14px;font-weight:600">${doc.travaux}</span></div>
+      <div style="margin-bottom:16px"><span style="font-size:12px;font-weight:700;color:${COLORS.inkSoft};text-transform:uppercase">Objet : </span><span style="font-size:14px;font-weight:600">${doc.travaux}</span></div>
       <table><thead><tr><th>Description</th><th style="width:70px;text-align:center">Qté</th><th style="width:100px;text-align:right">P.U. HT</th><th style="width:110px;text-align:right">Total HT</th></tr></thead>
       <tbody>${(doc.lignes||[]).map((l,i)=>`<tr><td>${l.desc}</td><td style="text-align:center">${l.qte}</td><td style="text-align:right">${Number(l.pu).toLocaleString("fr-FR")} €</td><td style="text-align:right;font-weight:600">${(Number(l.qte)*Number(l.pu)).toLocaleString("fr-FR")} €</td></tr>`).join("")}</tbody></table>
       <div class="totaux">
@@ -130,7 +178,7 @@ function ApercuDoc({doc,type,entreprise,onClose}){
         <div class="tl"><span>TVA 20%</span><span style="font-weight:600">${tva.toLocaleString("fr-FR",{minimumFractionDigits:2})} €</span></div>
         <div class="tl ttc"><span>TOTAL TTC</span><span>${ttc.toLocaleString("fr-FR",{minimumFractionDigits:2})} €</span></div>
       </div>
-      ${doc.notes?`<div style="margin-top:24px;padding:12px 16px;background:#fffbeb;border-radius:8px;font-size:13px;border-left:3px solid #f59e0b"><strong>Notes :</strong> ${doc.notes}</div>`:""}
+      ${doc.notes?`<div style="margin-top:24px;padding:12px 16px;background:${COLORS.pendingBg};border-radius:8px;font-size:13px;border-left:3px solid ${COLORS.pending}"><strong>Notes :</strong> ${doc.notes}</div>`:""}
       <div class="foot">${entreprise.nom} — SIRET ${entreprise.siret} — ${entreprise.adresse}, ${entreprise.cp} ${entreprise.ville}</div>
     </body></html>`);
     w.document.close(); w.focus(); setTimeout(()=>w.print(),500);
@@ -140,48 +188,48 @@ function ApercuDoc({doc,type,entreprise,onClose}){
       <button style={btnP} onClick={imprimer}>🖨️ Imprimer / PDF</button>
       <button style={btnS} onClick={onClose}>Fermer</button>
     </div>
-    <div style={{border:"1px solid #e2e8f0",borderRadius:12,padding:28,background:"#fff"}}>
+    <div style={{border:`1px solid ${COLORS.line}`,borderRadius:12,padding:28,background:"#fff"}}>
       <div style={{display:"flex",justifyContent:"space-between",marginBottom:32}}>
         <div>
-          <div style={{fontWeight:800,fontSize:17,color:"#1e3a5f"}}>{entreprise.nom}</div>
-          <div style={{fontSize:13,color:"#64748b",marginTop:4}}>{entreprise.adresse}<br/>{entreprise.cp} {entreprise.ville}<br/>📞 {entreprise.tel}<br/>✉️ {entreprise.email}</div>
-          <div style={{fontSize:11,color:"#94a3b8",marginTop:6}}>SIRET : {entreprise.siret}</div>
+          <div style={{fontWeight:800,fontSize:17,color:COLORS.ink}}>{entreprise.nom}</div>
+          <div style={{fontSize:13,color:COLORS.inkSoft,marginTop:4}}>{entreprise.adresse}<br/>{entreprise.cp} {entreprise.ville}<br/>📞 {entreprise.tel}<br/>✉️ {entreprise.email}</div>
+          <div style={{fontSize:11,color:COLORS.inkSoft,marginTop:6}}>SIRET : {entreprise.siret}</div>
         </div>
         <div style={{textAlign:"right"}}>
-          <div style={{fontSize:28,fontWeight:800,color:"#1e40af"}}>{type==="facture"?"FACTURE":"DEVIS"}</div>
-          <div style={{fontSize:15,fontWeight:600,color:"#475569",marginTop:4}}>{doc.numero}</div>
-          <div style={{fontSize:13,color:"#94a3b8",marginTop:6}}>Date : {new Date((doc.dateEmission||TODAY)+"T12:00:00").toLocaleDateString("fr-FR")}</div>
-          {doc.dateEcheance&&<div style={{fontSize:13,color:"#94a3b8"}}>Échéance : {new Date(doc.dateEcheance+"T12:00:00").toLocaleDateString("fr-FR")}</div>}
+          <div style={{fontSize:26,fontWeight:800,color:COLORS.blueprint,fontFamily:FONT_DISPLAY}}>{type==="facture"?"FACTURE":"DEVIS"}</div>
+          <div style={{fontSize:15,fontWeight:600,color:COLORS.inkSoft,marginTop:4}}>{doc.numero}</div>
+          <div style={{fontSize:13,color:COLORS.inkSoft,marginTop:6}}>Date : {new Date((doc.dateEmission||TODAY)+"T12:00:00").toLocaleDateString("fr-FR")}</div>
+          {doc.dateEcheance&&<div style={{fontSize:13,color:COLORS.inkSoft}}>Échéance : {new Date(doc.dateEcheance+"T12:00:00").toLocaleDateString("fr-FR")}</div>}
         </div>
       </div>
-      <div style={{background:"#f8fafc",borderRadius:10,padding:"14px 18px",marginBottom:24}}>
-        <div style={{fontSize:11,fontWeight:700,color:"#94a3b8",textTransform:"uppercase",marginBottom:4}}>Destinataire</div>
+      <div style={{background:COLORS.lineSoft,borderRadius:10,padding:"14px 18px",marginBottom:24}}>
+        <div style={{fontSize:11,fontWeight:700,color:COLORS.inkSoft,textTransform:"uppercase",marginBottom:4}}>Destinataire</div>
         <div style={{fontWeight:700,fontSize:15}}>{doc.client}</div>
-        {doc.adresseClient&&<div style={{fontSize:13,color:"#64748b",marginTop:2}}>{doc.adresseClient}</div>}
+        {doc.adresseClient&&<div style={{fontSize:13,color:COLORS.inkSoft,marginTop:2}}>{doc.adresseClient}</div>}
       </div>
-      <div style={{marginBottom:14}}><span style={{fontSize:11,fontWeight:700,color:"#94a3b8",textTransform:"uppercase"}}>Objet : </span><span style={{fontSize:14,fontWeight:600}}>{doc.travaux}</span></div>
+      <div style={{marginBottom:14}}><span style={{fontSize:11,fontWeight:700,color:COLORS.inkSoft,textTransform:"uppercase"}}>Objet : </span><span style={{fontSize:14,fontWeight:600}}>{doc.travaux}</span></div>
       <table style={{width:"100%",borderCollapse:"collapse",marginBottom:8}}>
-        <thead><tr style={{background:"#1e3a5f"}}>
+        <thead><tr style={{background:COLORS.ink}}>
           <th style={{padding:"9px 12px",color:"#fff",textAlign:"left",fontSize:12}}>Description</th>
           <th style={{padding:"9px 12px",color:"#fff",textAlign:"center",fontSize:12,width:60}}>Qté</th>
           <th style={{padding:"9px 12px",color:"#fff",textAlign:"right",fontSize:12,width:90}}>P.U. HT</th>
           <th style={{padding:"9px 12px",color:"#fff",textAlign:"right",fontSize:12,width:100}}>Total HT</th>
         </tr></thead>
-        <tbody>{(doc.lignes||[]).map((l,i)=><tr key={i} style={{background:i%2===0?"#fff":"#f8fafc"}}>
-          <td style={{padding:"9px 12px",fontSize:13,borderBottom:"1px solid #e2e8f0"}}>{l.desc}</td>
-          <td style={{padding:"9px 12px",fontSize:13,textAlign:"center",borderBottom:"1px solid #e2e8f0"}}>{l.qte}</td>
-          <td style={{padding:"9px 12px",fontSize:13,textAlign:"right",borderBottom:"1px solid #e2e8f0"}}>{Number(l.pu).toLocaleString("fr-FR")} €</td>
-          <td style={{padding:"9px 12px",fontSize:13,textAlign:"right",fontWeight:600,borderBottom:"1px solid #e2e8f0"}}>{(Number(l.qte)*Number(l.pu)).toLocaleString("fr-FR")} €</td>
+        <tbody>{(doc.lignes||[]).map((l,i)=><tr key={i} style={{background:i%2===0?"#fff":COLORS.lineSoft}}>
+          <td style={{padding:"9px 12px",fontSize:13,borderBottom:`1px solid ${COLORS.line}`}}>{l.desc}</td>
+          <td style={{padding:"9px 12px",fontSize:13,textAlign:"center",borderBottom:`1px solid ${COLORS.line}`}}>{l.qte}</td>
+          <td style={{padding:"9px 12px",fontSize:13,textAlign:"right",borderBottom:`1px solid ${COLORS.line}`,fontFamily:FONT_MONO}}>{Number(l.pu).toLocaleString("fr-FR")} €</td>
+          <td style={{padding:"9px 12px",fontSize:13,textAlign:"right",fontWeight:600,borderBottom:`1px solid ${COLORS.line}`,fontFamily:FONT_MONO}}>{(Number(l.qte)*Number(l.pu)).toLocaleString("fr-FR")} €</td>
         </tr>)}</tbody>
       </table>
       <div style={{display:"flex",justifyContent:"flex-end"}}>
         <div style={{minWidth:240}}>
-          <div style={{display:"flex",justifyContent:"space-between",padding:"5px 10px",fontSize:13,color:"#475569"}}><span>Total HT</span><span style={{fontWeight:600}}>{ht.toLocaleString("fr-FR",{minimumFractionDigits:2})} €</span></div>
-          <div style={{display:"flex",justifyContent:"space-between",padding:"5px 10px",fontSize:13,color:"#475569"}}><span>TVA 20%</span><span style={{fontWeight:600}}>{tva.toLocaleString("fr-FR",{minimumFractionDigits:2})} €</span></div>
-          <div style={{display:"flex",justifyContent:"space-between",padding:"10px 10px",fontSize:17,fontWeight:800,color:"#1e40af",borderTop:"2px solid #1e40af",marginTop:6}}><span>TOTAL TTC</span><span>{ttc.toLocaleString("fr-FR",{minimumFractionDigits:2})} €</span></div>
+          <div style={{display:"flex",justifyContent:"space-between",padding:"5px 10px",fontSize:13,color:COLORS.inkSoft}}><span>Total HT</span><span style={{fontWeight:600,fontFamily:FONT_MONO}}>{ht.toLocaleString("fr-FR",{minimumFractionDigits:2})} €</span></div>
+          <div style={{display:"flex",justifyContent:"space-between",padding:"5px 10px",fontSize:13,color:COLORS.inkSoft}}><span>TVA 20%</span><span style={{fontWeight:600,fontFamily:FONT_MONO}}>{tva.toLocaleString("fr-FR",{minimumFractionDigits:2})} €</span></div>
+          <div style={{display:"flex",justifyContent:"space-between",padding:"10px 10px",fontSize:17,fontWeight:800,color:COLORS.accent,borderTop:`2px solid ${COLORS.accent}`,marginTop:6,fontFamily:FONT_MONO}}><span>TOTAL TTC</span><span>{ttc.toLocaleString("fr-FR",{minimumFractionDigits:2})} €</span></div>
         </div>
       </div>
-      {doc.notes&&<div style={{marginTop:20,padding:"10px 14px",background:"#fffbeb",borderRadius:8,fontSize:13,borderLeft:"3px solid #f59e0b"}}><strong>Notes :</strong> {doc.notes}</div>}
+      {doc.notes&&<div style={{marginTop:20,padding:"10px 14px",background:COLORS.pendingBg,borderRadius:8,fontSize:13,borderLeft:`3px solid ${COLORS.pending}`}}><strong>Notes :</strong> {doc.notes}</div>}
     </div>
   </Modal>;
 }
@@ -193,19 +241,19 @@ function LignesEditor({lignes,setLignes}){
   const del=(i)=>setLignes(lignes.filter((_,idx)=>idx!==i));
   const {ht,tva,ttc}=calcTotaux(lignes);
   return <div>
-    <div style={{fontSize:12,fontWeight:700,color:"#64748b",marginBottom:8}}>PRESTATIONS</div>
+    <div style={{fontSize:11,fontWeight:700,color:COLORS.inkSoft,marginBottom:8,letterSpacing:0.4,textTransform:"uppercase"}}>Prestations</div>
     {lignes.map((l,i)=><div key={i} style={{display:"flex",gap:6,alignItems:"center",marginBottom:8}}>
       <input style={{...inp,flex:3}} placeholder="Description" value={l.desc} onChange={e=>upd(i,"desc",e.target.value)}/>
       <input style={{...inp,width:60,flex:"none"}} type="number" placeholder="Qté" value={l.qte} onChange={e=>upd(i,"qte",e.target.value)}/>
       <input style={{...inp,width:80,flex:"none"}} type="number" placeholder="P.U.€" value={l.pu} onChange={e=>upd(i,"pu",e.target.value)}/>
-      <span style={{fontSize:13,fontWeight:700,color:"#1e40af",minWidth:70,textAlign:"right"}}>{((Number(l.qte)||0)*(Number(l.pu)||0)).toLocaleString("fr-FR")} €</span>
-      <button onClick={()=>del(i)} style={{background:"none",border:"none",cursor:"pointer",color:"#ef4444",fontSize:18}}>×</button>
+      <span style={{fontSize:13,fontWeight:700,color:COLORS.blueprint,minWidth:70,textAlign:"right",fontFamily:FONT_MONO}}>{((Number(l.qte)||0)*(Number(l.pu)||0)).toLocaleString("fr-FR")} €</span>
+      <button onClick={()=>del(i)} style={{background:"none",border:"none",cursor:"pointer",color:COLORS.danger,fontSize:18}}>×</button>
     </div>)}
-    <button onClick={add} style={{...btnS,fontSize:13,marginBottom:12}}>+ Ligne</button>
-    <div style={{background:"#f8fafc",borderRadius:10,padding:"10px 14px"}}>
-      <div style={{display:"flex",justifyContent:"space-between",fontSize:13,color:"#64748b",marginBottom:3}}><span>HT</span><span style={{fontWeight:600}}>{ht.toLocaleString("fr-FR",{minimumFractionDigits:2})} €</span></div>
-      <div style={{display:"flex",justifyContent:"space-between",fontSize:13,color:"#64748b",marginBottom:3}}><span>TVA 20%</span><span style={{fontWeight:600}}>{tva.toLocaleString("fr-FR",{minimumFractionDigits:2})} €</span></div>
-      <div style={{display:"flex",justifyContent:"space-between",fontSize:16,fontWeight:800,color:"#1e40af",borderTop:"2px solid #1e40af",paddingTop:8,marginTop:4}}><span>TTC</span><span>{ttc.toLocaleString("fr-FR",{minimumFractionDigits:2})} €</span></div>
+    <button onClick={add} style={{...btnS,marginBottom:12}}>+ Ligne</button>
+    <div style={{background:COLORS.lineSoft,borderRadius:10,padding:"10px 14px"}}>
+      <div style={{display:"flex",justifyContent:"space-between",fontSize:13,color:COLORS.inkSoft,marginBottom:3}}><span>HT</span><span style={{fontWeight:600,fontFamily:FONT_MONO}}>{ht.toLocaleString("fr-FR",{minimumFractionDigits:2})} €</span></div>
+      <div style={{display:"flex",justifyContent:"space-between",fontSize:13,color:COLORS.inkSoft,marginBottom:3}}><span>TVA 20%</span><span style={{fontWeight:600,fontFamily:FONT_MONO}}>{tva.toLocaleString("fr-FR",{minimumFractionDigits:2})} €</span></div>
+      <div style={{display:"flex",justifyContent:"space-between",fontSize:16,fontWeight:800,color:COLORS.accent,borderTop:`2px solid ${COLORS.accent}`,paddingTop:8,marginTop:4,fontFamily:FONT_MONO}}><span>TTC</span><span>{ttc.toLocaleString("fr-FR",{minimumFractionDigits:2})} €</span></div>
     </div>
   </div>;
 }
@@ -225,64 +273,64 @@ function Agenda({data,setData}){
   const premierJour=new Date(annee,mois,1).getDay(),nbJours=new Date(annee,mois+1,0).getDate();
   const jours=[];for(let i=0;i<premierJour;i++)jours.push(null);for(let i=1;i<=nbJours;i++)jours.push(i);
   const rdvDuJour=(j)=>{const ds=`${annee}-${String(mois+1).padStart(2,"0")}-${String(j).padStart(2,"0")}`;return data.rdv.filter(r=>r.date===ds);};
-  return <div>
-    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}>
-      <div><span style={{fontWeight:700,fontSize:20,color:"#1e293b"}}>Agenda</span><span style={{marginLeft:10,background:"#eff6ff",color:"#1e40af",borderRadius:20,padding:"2px 12px",fontSize:13,fontWeight:600}}>{rdvAvenir.length} à venir</span></div>
-      <button style={btnP} onClick={()=>setShowForm(true)}>+ Nouveau RDV</button>
+  return <div style={{fontFamily:FONT_BODY}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+      <div><span style={{fontWeight:700,fontSize:19,color:COLORS.ink,fontFamily:FONT_DISPLAY}}>Agenda</span><span style={{marginLeft:10,background:COLORS.blueprintBg,color:COLORS.blueprint,borderRadius:20,padding:"2px 12px",fontSize:12.5,fontWeight:600}}>{rdvAvenir.length} à venir</span></div>
+      <button style={btnP} onClick={()=>setShowForm(true)}><Icon name="plus" size={13} style={{marginRight:5,verticalAlign:-2}}/>Nouveau RDV</button>
     </div>
-    <div style={{display:"flex",gap:8,marginBottom:18}}>
-      {[["liste","📋 Liste"],["calendrier","📅 Calendrier"]].map(([v,l])=><button key={v} onClick={()=>setVue(v)} style={{padding:"7px 16px",borderRadius:8,border:"1px solid #e2e8f0",background:vue===v?"#1e40af":"#fff",color:vue===v?"#fff":"#64748b",fontWeight:600,fontSize:13,cursor:"pointer"}}>{l}</button>)}
+    <div style={{display:"flex",gap:8,marginBottom:16}}>
+      {[["liste","Liste"],["calendrier","Calendrier"]].map(([v,l])=><button key={v} onClick={()=>setVue(v)} style={{padding:"6px 14px",borderRadius:8,border:`1px solid ${COLORS.line}`,background:vue===v?COLORS.ink:"#fff",color:vue===v?"#fff":COLORS.inkSoft,fontWeight:600,fontSize:12.5,cursor:"pointer",fontFamily:FONT_BODY}}>{l}</button>)}
     </div>
-    {vue==="calendrier"&&<div style={{background:"#fff",borderRadius:14,border:"1px solid #e2e8f0",padding:16,marginBottom:20}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-        <button onClick={()=>setMoisActuel(new Date(annee,mois-1,1))} style={{background:"none",border:"none",fontSize:20,cursor:"pointer",color:"#1e40af"}}>‹</button>
-        <span style={{fontWeight:700,fontSize:16,color:"#1e293b"}}>{MOIS[mois]} {annee}</span>
-        <button onClick={()=>setMoisActuel(new Date(annee,mois+1,1))} style={{background:"none",border:"none",fontSize:20,cursor:"pointer",color:"#1e40af"}}>›</button>
+    {vue==="calendrier"&&<div style={{background:"#fff",borderRadius:14,border:`1px solid ${COLORS.line}`,padding:14,marginBottom:18}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+        <button onClick={()=>setMoisActuel(new Date(annee,mois-1,1))} style={{background:"none",border:"none",fontSize:20,cursor:"pointer",color:COLORS.accent}}>‹</button>
+        <span style={{fontWeight:700,fontSize:15,color:COLORS.ink,fontFamily:FONT_DISPLAY}}>{MOIS[mois]} {annee}</span>
+        <button onClick={()=>setMoisActuel(new Date(annee,mois+1,1))} style={{background:"none",border:"none",fontSize:20,cursor:"pointer",color:COLORS.accent}}>›</button>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:4,textAlign:"center"}}>
-        {JOURS.map(j=><div key={j} style={{fontSize:11,fontWeight:700,color:"#94a3b8",padding:"4px 0"}}>{j}</div>)}
+        {JOURS.map(j=><div key={j} style={{fontSize:10.5,fontWeight:700,color:COLORS.inkSoft,padding:"4px 0"}}>{j}</div>)}
         {jours.map((j,i)=>{const rdvJ=j?rdvDuJour(j):[];const ds=j?`${annee}-${String(mois+1).padStart(2,"0")}-${String(j).padStart(2,"0")}`:"";const isT=ds===TODAY;
-          return <div key={i} style={{minHeight:40,borderRadius:8,background:isT?"#eff6ff":j?"#f8fafc":"transparent",border:isT?"2px solid #1e40af":"1px solid transparent",padding:4}}>
-            {j&&<div style={{fontSize:12,fontWeight:isT?700:400,color:isT?"#1e40af":"#475569"}}>{j}</div>}
-            {rdvJ.map(r=><div key={r.id} style={{background:TYPE_RDV[r.type]?.bg,borderRadius:4,fontSize:9,color:TYPE_RDV[r.type]?.color,fontWeight:600,padding:"1px 3px",marginTop:2,overflow:"hidden"}}>{TYPE_RDV[r.type]?.emoji} {r.heure}</div>)}
+          return <div key={i} style={{minHeight:38,borderRadius:8,background:isT?COLORS.blueprintBg:j?COLORS.lineSoft:"transparent",border:isT?`2px solid ${COLORS.blueprint}`:"1px solid transparent",padding:4}}>
+            {j&&<div style={{fontSize:11.5,fontWeight:isT?700:400,color:isT?COLORS.blueprint:COLORS.ink}}>{j}</div>}
+            {rdvJ.map(r=><div key={r.id} style={{background:TYPE_RDV[r.type]?.bg,borderRadius:4,fontSize:9,color:TYPE_RDV[r.type]?.color,fontWeight:600,padding:"1px 3px",marginTop:2,overflow:"hidden"}}>{r.heure}</div>)}
           </div>;})}
       </div>
     </div>}
-    <div style={{display:"flex",flexDirection:"column",gap:10}}>
-      {rdvAvenir.map(r=>{const tc=TYPE_RDV[r.type]||{};return <div key={r.id} style={{background:"#fff",borderLeft:`4px solid ${tc.color}`,border:"1px solid #e2e8f0",borderRadius:12,padding:"14px 16px"}}>
+    <div style={{display:"flex",flexDirection:"column",gap:9}}>
+      {rdvAvenir.map(r=>{const tc=TYPE_RDV[r.type]||{};return <div key={r.id} style={{background:"#fff",borderLeft:`3px solid ${tc.color}`,border:`1px solid ${COLORS.line}`,borderRadius:12,padding:"12px 14px"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
           <div style={{flex:1}}>
-            <div style={{fontWeight:700,color:"#1e293b",fontSize:15}}>{tc.emoji} {r.titre}</div>
-            {r.client&&<div style={{fontSize:13,color:"#64748b",marginTop:2}}>👤 {r.client}</div>}
-            <div style={{fontSize:12,color:"#94a3b8",marginTop:4}}>📅 {new Date(r.date+"T12:00:00").toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"})} à {r.heure} · {r.duree} min</div>
-            {r.notes&&<div style={{fontSize:12,color:"#475569",marginTop:6,padding:"6px 10px",background:"#f8fafc",borderRadius:6}}>{r.notes}</div>}
+            <div style={{fontWeight:700,color:COLORS.ink,fontSize:14.5}}>{r.titre}</div>
+            {r.client&&<div style={{fontSize:12.5,color:COLORS.inkSoft,marginTop:2}}>{r.client}</div>}
+            <div style={{fontSize:11.5,color:COLORS.inkSoft,marginTop:4,fontFamily:FONT_MONO}}>{new Date(r.date+"T12:00:00").toLocaleDateString("fr-FR",{weekday:"short",day:"numeric",month:"short"})} · {r.heure} · {r.duree}min</div>
+            {r.notes&&<div style={{fontSize:12,color:COLORS.ink,marginTop:6,padding:"6px 10px",background:COLORS.lineSoft,borderRadius:6}}>{r.notes}</div>}
           </div>
-          <div style={{display:"flex",flexDirection:"column",gap:6,marginLeft:12}}>
+          <div style={{display:"flex",flexDirection:"column",gap:6,marginLeft:10,alignItems:"flex-end"}}>
             <Badge config={TYPE_RDV} value={r.type}/>
             <button onClick={()=>del(r.id)} style={btnD}>Suppr.</button>
           </div>
         </div>
       </div>;})}
-      {rdvAvenir.length===0&&<div style={{textAlign:"center",color:"#94a3b8",padding:32,fontSize:14}}>Aucun rendez-vous à venir</div>}
+      {rdvAvenir.length===0&&<div style={{textAlign:"center",color:COLORS.inkSoft,padding:28,fontSize:13.5}}>Aucun rendez-vous à venir</div>}
     </div>
-    {rdvPasses.length>0&&<div style={{marginTop:24}}>
-      <div style={{fontWeight:600,color:"#94a3b8",fontSize:14,marginBottom:10}}>Passés ({rdvPasses.length})</div>
-      {rdvPasses.map(r=><div key={r.id} style={{background:"#f8fafc",border:"1px solid #e2e8f0",borderRadius:10,padding:"10px 14px",display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6,opacity:0.6}}>
-        <div><span style={{fontSize:14,color:"#64748b"}}>{TYPE_RDV[r.type]?.emoji} {r.titre}</span><span style={{fontSize:12,color:"#94a3b8",marginLeft:10}}>{new Date(r.date+"T12:00:00").toLocaleDateString("fr-FR")} à {r.heure}</span></div>
+    {rdvPasses.length>0&&<div style={{marginTop:20}}>
+      <div style={{fontWeight:600,color:COLORS.inkSoft,fontSize:12.5,marginBottom:8,textTransform:"uppercase",letterSpacing:0.4}}>Passés ({rdvPasses.length})</div>
+      {rdvPasses.map(r=><div key={r.id} style={{background:COLORS.lineSoft,border:`1px solid ${COLORS.line}`,borderRadius:10,padding:"9px 12px",display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6,opacity:0.65}}>
+        <div><span style={{fontSize:13,color:COLORS.inkSoft}}>{r.titre}</span><span style={{fontSize:11.5,color:COLORS.inkSoft,marginLeft:8,fontFamily:FONT_MONO}}>{new Date(r.date+"T12:00:00").toLocaleDateString("fr-FR")}</span></div>
         <button onClick={()=>del(r.id)} style={btnD}>Suppr.</button>
       </div>)}
     </div>}
     {showForm&&<Modal title="Nouveau rendez-vous" onClose={()=>setShowForm(false)}>
       <IR label="Titre *"><input style={inp} value={form.titre} onChange={e=>setForm(f=>({...f,titre:e.target.value}))} placeholder="Ex : Visite chantier Dupont"/></IR>
       <IR label="Client"><input style={inp} value={form.client} onChange={e=>setForm(f=>({...f,client:e.target.value}))} placeholder="Nom du client"/></IR>
-      <IR label="Type"><select style={inp} value={form.type} onChange={e=>setForm(f=>({...f,type:e.target.value}))}>{Object.entries(TYPE_RDV).map(([k,v])=><option key={k} value={k}>{v.emoji} {v.label}</option>)}</select></IR>
+      <IR label="Type"><select style={inp} value={form.type} onChange={e=>setForm(f=>({...f,type:e.target.value}))}>{Object.entries(TYPE_RDV).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}</select></IR>
       <div style={{display:"flex",gap:10}}>
         <IR label="Date"><input type="date" style={inp} value={form.date} onChange={e=>setForm(f=>({...f,date:e.target.value}))}/></IR>
         <IR label="Heure"><input type="time" style={inp} value={form.heure} onChange={e=>setForm(f=>({...f,heure:e.target.value}))}/></IR>
       </div>
       <IR label="Durée"><select style={inp} value={form.duree} onChange={e=>setForm(f=>({...f,duree:e.target.value}))}><option value={30}>30 min</option><option value={45}>45 min</option><option value={60}>1h</option><option value={90}>1h30</option><option value={120}>2h</option><option value={180}>3h</option><option value={480}>Journée</option></select></IR>
       <IR label="Notes"><textarea style={{...inp,minHeight:60,resize:"vertical"}} value={form.notes} onChange={e=>setForm(f=>({...f,notes:e.target.value}))} placeholder="Infos…"/></IR>
-      <div style={{display:"flex",gap:10}}><button style={btnP} onClick={add}>Ajouter</button><button style={{...btnD,background:"#f1f5f9",color:"#64748b"}} onClick={()=>setShowForm(false)}>Annuler</button></div>
+      <div style={{display:"flex",gap:10}}><button style={btnP} onClick={add}>Ajouter</button><button style={{...btnS}} onClick={()=>setShowForm(false)}>Annuler</button></div>
     </Modal>}
   </div>;
 }
@@ -295,23 +343,23 @@ function Taches({data,setData}){
   const toggle=(id)=>setData(d=>({...d,taches:d.taches.map(t=>t.id===id?{...t,fait:!t.fait}:t)}));
   const del=(id)=>setData(d=>({...d,taches:d.taches.filter(t=>t.id!==id)}));
   const todo=data.taches.filter(t=>!t.fait),done=data.taches.filter(t=>t.fait);
-  return <div>
-    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}>
-      <div><span style={{fontWeight:700,fontSize:20,color:"#1e293b"}}>À faire</span><span style={{marginLeft:10,background:"#eff6ff",color:"#1e40af",borderRadius:20,padding:"2px 12px",fontSize:13,fontWeight:600}}>{todo.length} en cours</span></div>
-      <button style={btnP} onClick={()=>setShowForm(true)}>+ Nouvelle tâche</button>
+  return <div style={{fontFamily:FONT_BODY}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+      <div><span style={{fontWeight:700,fontSize:19,color:COLORS.ink,fontFamily:FONT_DISPLAY}}>À faire</span><span style={{marginLeft:10,background:COLORS.blueprintBg,color:COLORS.blueprint,borderRadius:20,padding:"2px 12px",fontSize:12.5,fontWeight:600}}>{todo.length} en cours</span></div>
+      <button style={btnP} onClick={()=>setShowForm(true)}><Icon name="plus" size={13} style={{marginRight:5,verticalAlign:-2}}/>Nouvelle tâche</button>
     </div>
-    <div style={{display:"flex",flexDirection:"column",gap:10}}>
-      {todo.map(t=><div key={t.id} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,padding:"14px 16px",display:"flex",alignItems:"center",gap:12}}>
-        <input type="checkbox" checked={false} onChange={()=>toggle(t.id)} style={{width:18,height:18,cursor:"pointer",accentColor:"#1e40af"}}/>
-        <div style={{flex:1}}><div style={{fontWeight:600,color:"#1e293b",fontSize:15}}>{t.titre}</div>{t.echeance&&<div style={{fontSize:12,color:"#94a3b8",marginTop:2}}>📅 {new Date(t.echeance+"T12:00:00").toLocaleDateString("fr-FR")}</div>}</div>
+    <div style={{display:"flex",flexDirection:"column",gap:9}}>
+      {todo.map(t=><div key={t.id} style={{background:"#fff",border:`1px solid ${COLORS.line}`,borderRadius:12,padding:"12px 14px",display:"flex",alignItems:"center",gap:12}}>
+        <input type="checkbox" checked={false} onChange={()=>toggle(t.id)} style={{width:18,height:18,cursor:"pointer",accentColor:COLORS.accent}}/>
+        <div style={{flex:1}}><div style={{fontWeight:600,color:COLORS.ink,fontSize:14.5}}>{t.titre}</div>{t.echeance&&<div style={{fontSize:11.5,color:COLORS.inkSoft,marginTop:2,fontFamily:FONT_MONO}}>{new Date(t.echeance+"T12:00:00").toLocaleDateString("fr-FR")}</div>}</div>
         <Badge config={PRIORITE_CONFIG} value={t.priorite}/><button onClick={()=>del(t.id)} style={btnD}>Suppr.</button>
       </div>)}
     </div>
-    {done.length>0&&<div style={{marginTop:24}}>
-      <div style={{fontWeight:600,color:"#94a3b8",fontSize:14,marginBottom:10}}>✓ Terminées ({done.length})</div>
-      {done.map(t=><div key={t.id} style={{background:"#f8fafc",border:"1px solid #e2e8f0",borderRadius:10,padding:"10px 14px",display:"flex",alignItems:"center",gap:12,marginBottom:6,opacity:0.7}}>
-        <input type="checkbox" checked={true} onChange={()=>toggle(t.id)} style={{width:18,height:18,cursor:"pointer",accentColor:"#22c55e"}}/>
-        <span style={{textDecoration:"line-through",color:"#94a3b8",flex:1}}>{t.titre}</span>
+    {done.length>0&&<div style={{marginTop:20}}>
+      <div style={{fontWeight:600,color:COLORS.inkSoft,fontSize:12.5,marginBottom:8,textTransform:"uppercase",letterSpacing:0.4}}>Terminées ({done.length})</div>
+      {done.map(t=><div key={t.id} style={{background:COLORS.lineSoft,border:`1px solid ${COLORS.line}`,borderRadius:10,padding:"9px 12px",display:"flex",alignItems:"center",gap:12,marginBottom:6,opacity:0.7}}>
+        <input type="checkbox" checked={true} onChange={()=>toggle(t.id)} style={{width:18,height:18,cursor:"pointer",accentColor:COLORS.success}}/>
+        <span style={{textDecoration:"line-through",color:COLORS.inkSoft,flex:1,fontSize:13.5}}>{t.titre}</span>
         <button onClick={()=>del(t.id)} style={btnD}>Suppr.</button>
       </div>)}
     </div>}
@@ -319,7 +367,7 @@ function Taches({data,setData}){
       <IR label="Description *"><input style={inp} value={form.titre} onChange={e=>setForm(f=>({...f,titre:e.target.value}))} placeholder="Ex : Appeler le fournisseur…"/></IR>
       <IR label="Priorité"><select style={inp} value={form.priorite} onChange={e=>setForm(f=>({...f,priorite:e.target.value}))}><option value="haute">Haute</option><option value="moyenne">Moyenne</option><option value="basse">Basse</option></select></IR>
       <IR label="Échéance"><input type="date" style={inp} value={form.echeance} onChange={e=>setForm(f=>({...f,echeance:e.target.value}))}/></IR>
-      <div style={{display:"flex",gap:10}}><button style={btnP} onClick={add}>Ajouter</button><button style={{...btnD,background:"#f1f5f9",color:"#64748b"}} onClick={()=>setShowForm(false)}>Annuler</button></div>
+      <div style={{display:"flex",gap:10}}><button style={btnP} onClick={add}>Ajouter</button><button style={btnS} onClick={()=>setShowForm(false)}>Annuler</button></div>
     </Modal>}
   </div>;
 }
@@ -331,26 +379,26 @@ function Chantiers({data,setData}){
   const add=()=>{if(!form.nom.trim())return;setData(d=>({...d,chantiers:[...d.chantiers,{...form,id:Date.now(),avancement:Number(form.avancement)}]}));setForm({nom:"",client:"",statut:"en_cours",avancement:0,debut:"",fin:"",notes:""});setShowForm(false);};
   const del=(id)=>setData(d=>({...d,chantiers:d.chantiers.filter(c=>c.id!==id)}));
   const updStatut=(id,statut)=>setData(d=>({...d,chantiers:d.chantiers.map(c=>c.id===id?{...c,statut}:c)}));
-  return <div>
-    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}>
-      <div><span style={{fontWeight:700,fontSize:20,color:"#1e293b"}}>Chantiers</span><span style={{marginLeft:10,background:"#eff6ff",color:"#1e40af",borderRadius:20,padding:"2px 12px",fontSize:13,fontWeight:600}}>{data.chantiers.length}</span></div>
-      <button style={btnP} onClick={()=>setShowForm(true)}>+ Nouveau</button>
+  return <div style={{fontFamily:FONT_BODY}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+      <div><span style={{fontWeight:700,fontSize:19,color:COLORS.ink,fontFamily:FONT_DISPLAY}}>Chantiers</span><span style={{marginLeft:10,background:COLORS.blueprintBg,color:COLORS.blueprint,borderRadius:20,padding:"2px 12px",fontSize:12.5,fontWeight:600}}>{data.chantiers.length}</span></div>
+      <button style={btnP} onClick={()=>setShowForm(true)}><Icon name="plus" size={13} style={{marginRight:5,verticalAlign:-2}}/>Nouveau</button>
     </div>
-    <div style={{display:"flex",flexDirection:"column",gap:14}}>
-      {data.chantiers.map(c=><div key={c.id} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:14,padding:18}}>
+    <div style={{display:"flex",flexDirection:"column",gap:12}}>
+      {data.chantiers.map(c=><div key={c.id} style={{background:"#fff",border:`1px solid ${COLORS.line}`,borderRadius:14,padding:16}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
-          <div><div style={{fontWeight:700,fontSize:16,color:"#1e293b"}}>{c.nom}</div><div style={{color:"#64748b",fontSize:13,marginTop:2}}>👤 {c.client}</div></div>
+          <div><div style={{fontWeight:700,fontSize:15.5,color:COLORS.ink}}>{c.nom}</div><div style={{color:COLORS.inkSoft,fontSize:12.5,marginTop:2}}>{c.client}</div></div>
           <div style={{display:"flex",gap:8,alignItems:"center"}}>
-            <select value={c.statut} onChange={e=>updStatut(c.id,e.target.value)} style={{border:"none",background:STATUT_CHANTIER[c.statut]?.bg,color:STATUT_CHANTIER[c.statut]?.color,borderRadius:6,padding:"3px 8px",fontWeight:600,fontSize:12,cursor:"pointer"}}>{Object.entries(STATUT_CHANTIER).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}</select>
+            <select value={c.statut} onChange={e=>updStatut(c.id,e.target.value)} style={{border:"none",background:STATUT_CHANTIER[c.statut]?.bg,color:STATUT_CHANTIER[c.statut]?.color,borderRadius:6,padding:"3px 8px",fontWeight:600,fontSize:11.5,cursor:"pointer",fontFamily:FONT_BODY}}>{Object.entries(STATUT_CHANTIER).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}</select>
             <button onClick={()=>del(c.id)} style={btnD}>Suppr.</button>
           </div>
         </div>
         <div style={{margin:"10px 0"}}>
-          <div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:"#64748b",marginBottom:4}}><span>Avancement</span><span style={{fontWeight:700,color:"#1e40af"}}>{c.avancement}%</span></div>
-          <div style={{background:"#e2e8f0",borderRadius:8,height:8,overflow:"hidden"}}><div style={{height:"100%",width:`${c.avancement}%`,background:c.avancement===100?"#22c55e":"#1e40af",borderRadius:8}}/></div>
+          <div style={{display:"flex",justifyContent:"space-between",fontSize:11.5,color:COLORS.inkSoft,marginBottom:4}}><span>Avancement</span><span style={{fontWeight:700,color:COLORS.blueprint,fontFamily:FONT_MONO}}>{c.avancement}%</span></div>
+          <div style={{background:COLORS.lineSoft,borderRadius:8,height:6,overflow:"hidden"}}><div style={{height:"100%",width:`${c.avancement}%`,background:c.avancement===100?COLORS.success:COLORS.blueprint,borderRadius:8}}/></div>
         </div>
-        <div style={{display:"flex",gap:16,fontSize:12,color:"#94a3b8"}}>{c.debut&&<span>📅 Début : {new Date(c.debut+"T12:00:00").toLocaleDateString("fr-FR")}</span>}{c.fin&&<span>🏁 Fin : {new Date(c.fin+"T12:00:00").toLocaleDateString("fr-FR")}</span>}</div>
-        {c.notes&&<div style={{marginTop:8,padding:"8px 12px",background:"#f8fafc",borderRadius:8,fontSize:13,color:"#475569",borderLeft:"3px solid #cbd5e1"}}>{c.notes}</div>}
+        <div style={{display:"flex",gap:16,fontSize:11.5,color:COLORS.inkSoft,fontFamily:FONT_MONO}}>{c.debut&&<span>Début {new Date(c.debut+"T12:00:00").toLocaleDateString("fr-FR")}</span>}{c.fin&&<span>Fin {new Date(c.fin+"T12:00:00").toLocaleDateString("fr-FR")}</span>}</div>
+        {c.notes&&<div style={{marginTop:8,padding:"8px 12px",background:COLORS.lineSoft,borderRadius:8,fontSize:12.5,color:COLORS.ink,borderLeft:`3px solid ${COLORS.line}`}}>{c.notes}</div>}
       </div>)}
     </div>
     {showForm&&<Modal title="Nouveau chantier" onClose={()=>setShowForm(false)}>
@@ -360,7 +408,7 @@ function Chantiers({data,setData}){
       <IR label="Statut"><select style={inp} value={form.statut} onChange={e=>setForm(f=>({...f,statut:e.target.value}))}>{Object.entries(STATUT_CHANTIER).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}</select></IR>
       <IR label="Avancement (%)"><input type="number" min="0" max="100" style={inp} value={form.avancement} onChange={e=>setForm(f=>({...f,avancement:e.target.value}))}/></IR>
       <IR label="Notes"><textarea style={{...inp,minHeight:60,resize:"vertical"}} value={form.notes} onChange={e=>setForm(f=>({...f,notes:e.target.value}))}/></IR>
-      <div style={{display:"flex",gap:10}}><button style={btnP} onClick={add}>Ajouter</button><button style={{...btnD,background:"#f1f5f9",color:"#64748b"}} onClick={()=>setShowForm(false)}>Annuler</button></div>
+      <div style={{display:"flex",gap:10}}><button style={btnP} onClick={add}>Ajouter</button><button style={btnS} onClick={()=>setShowForm(false)}>Annuler</button></div>
     </Modal>}
   </div>;
 }
@@ -377,26 +425,26 @@ function Devis({data,setData}){
   const convertir=(dv)=>{
     const num=`FAC-${new Date().getFullYear()}-${(data.factures.length+1).toString().padStart(3,"0")}`;
     setData(d=>({...d,factures:[...d.factures,{...dv,id:Date.now(),numero:num,statut:"envoyee",dateEmission:TODAY,dateEcheance:""}],devis:d.devis.map(d2=>d2.id===dv.id?{...d2,statut:"accepte"}:d2)}));
-    alert(`✅ Facture ${num} créée !`);
+    alert(`Facture ${num} créée !`);
   };
   const totalTTC=data.devis.filter(d=>d.statut==="accepte").reduce((s,d)=>s+calcTotaux(d.lignes).ttc,0);
-  return <div>
-    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}>
-      <div><span style={{fontWeight:700,fontSize:20,color:"#1e293b"}}>Devis</span><span style={{marginLeft:10,background:"#f0fdf4",color:"#16a34a",borderRadius:20,padding:"2px 12px",fontSize:13,fontWeight:600}}>{totalTTC.toLocaleString("fr-FR",{maximumFractionDigits:0})} € TTC signés</span></div>
-      <button style={btnP} onClick={()=>setShowForm(true)}>+ Nouveau devis</button>
+  return <div style={{fontFamily:FONT_BODY}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+      <div><span style={{fontWeight:700,fontSize:19,color:COLORS.ink,fontFamily:FONT_DISPLAY}}>Devis</span><span style={{marginLeft:10,background:COLORS.successBg,color:COLORS.success,borderRadius:20,padding:"2px 12px",fontSize:12.5,fontWeight:600,fontFamily:FONT_MONO}}>{totalTTC.toLocaleString("fr-FR",{maximumFractionDigits:0})} € TTC signés</span></div>
+      <button style={btnP} onClick={()=>setShowForm(true)}><Icon name="plus" size={13} style={{marginRight:5,verticalAlign:-2}}/>Nouveau devis</button>
     </div>
-    <div style={{display:"flex",flexDirection:"column",gap:12}}>
-      {data.devis.map(d=>{const {ttc,ht}=calcTotaux(d.lignes);return <div key={d.id} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:14,padding:16}}>
+    <div style={{display:"flex",flexDirection:"column",gap:10}}>
+      {data.devis.map(d=>{const {ttc,ht}=calcTotaux(d.lignes);return <div key={d.id} style={{background:"#fff",border:`1px solid ${COLORS.line}`,borderRadius:14,padding:15}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-          <div><div style={{fontSize:12,color:"#94a3b8",fontWeight:600}}>{d.numero}</div><div style={{fontWeight:700,color:"#1e293b",fontSize:15,marginTop:2}}>{d.client}</div><div style={{color:"#475569",fontSize:13,marginTop:2}}>{d.travaux}</div></div>
-          <div style={{textAlign:"right"}}><div style={{fontWeight:800,fontSize:17,color:"#1e40af"}}>{ttc.toLocaleString("fr-FR",{maximumFractionDigits:0})} € TTC</div><div style={{fontSize:11,color:"#94a3b8"}}>HT : {ht.toLocaleString("fr-FR",{maximumFractionDigits:0})} €</div></div>
+          <div><div style={{fontSize:11,color:COLORS.inkSoft,fontWeight:600,fontFamily:FONT_MONO}}>{d.numero}</div><div style={{fontWeight:700,color:COLORS.ink,fontSize:14.5,marginTop:2}}>{d.client}</div><div style={{color:COLORS.inkSoft,fontSize:12.5,marginTop:2}}>{d.travaux}</div></div>
+          <div style={{textAlign:"right"}}><div style={{fontWeight:800,fontSize:16,color:COLORS.blueprint,fontFamily:FONT_MONO}}>{ttc.toLocaleString("fr-FR",{maximumFractionDigits:0})} € TTC</div><div style={{fontSize:10.5,color:COLORS.inkSoft,fontFamily:FONT_MONO}}>HT {ht.toLocaleString("fr-FR",{maximumFractionDigits:0})} €</div></div>
         </div>
         <div style={{display:"flex",alignItems:"center",gap:8,marginTop:12,flexWrap:"wrap"}}>
-          <select value={d.statut} onChange={e=>updStatut(d.id,e.target.value)} style={{border:"none",background:STATUT_DEVIS[d.statut]?.bg,color:STATUT_DEVIS[d.statut]?.color,borderRadius:6,padding:"3px 8px",fontWeight:600,fontSize:12,cursor:"pointer"}}>{Object.entries(STATUT_DEVIS).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}</select>
-          {d.echeance&&<span style={{fontSize:12,color:"#94a3b8"}}>📅 {new Date(d.echeance+"T12:00:00").toLocaleDateString("fr-FR")}</span>}
+          <select value={d.statut} onChange={e=>updStatut(d.id,e.target.value)} style={{border:"none",background:STATUT_DEVIS[d.statut]?.bg,color:STATUT_DEVIS[d.statut]?.color,borderRadius:6,padding:"3px 8px",fontWeight:600,fontSize:11.5,cursor:"pointer",fontFamily:FONT_BODY}}>{Object.entries(STATUT_DEVIS).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}</select>
+          {d.echeance&&<span style={{fontSize:11.5,color:COLORS.inkSoft,fontFamily:FONT_MONO}}>{new Date(d.echeance+"T12:00:00").toLocaleDateString("fr-FR")}</span>}
           <div style={{marginLeft:"auto",display:"flex",gap:6}}>
-            <button style={btnS} onClick={()=>setApercu({doc:d,type:"devis"})}>👁️ Aperçu</button>
-            {d.statut==="accepte"&&<button style={btnG} onClick={()=>convertir(d)}>🧾 → Facture</button>}
+            <button style={btnS} onClick={()=>setApercu({doc:d,type:"devis"})}>Aperçu</button>
+            {d.statut==="accepte"&&<button style={btnG} onClick={()=>convertir(d)}>→ Facture</button>}
             <button onClick={()=>del(d.id)} style={btnD}>Suppr.</button>
           </div>
         </div>
@@ -414,7 +462,7 @@ function Devis({data,setData}){
       </div>
       <div style={{marginBottom:12}}><LignesEditor lignes={form.lignes} setLignes={l=>setForm(f=>({...f,lignes:l}))}/></div>
       <IR label="Notes"><input style={inp} value={form.notes} onChange={e=>setForm(f=>({...f,notes:e.target.value}))} placeholder="Conditions, remarques…"/></IR>
-      <div style={{display:"flex",gap:10,marginTop:8}}><button style={btnP} onClick={add}>Créer le devis</button><button style={{...btnD,background:"#f1f5f9",color:"#64748b"}} onClick={()=>setShowForm(false)}>Annuler</button></div>
+      <div style={{display:"flex",gap:10,marginTop:8}}><button style={btnP} onClick={add}>Créer le devis</button><button style={btnS} onClick={()=>setShowForm(false)}>Annuler</button></div>
     </Modal>}
     {apercu&&<ApercuDoc doc={apercu.doc} type={apercu.type} entreprise={data.entreprise} onClose={()=>setApercu(null)}/>}
   </div>;
@@ -431,32 +479,38 @@ function Factures({data,setData}){
   const updStatut=(id,statut)=>setData(d=>({...d,factures:d.factures.map(f=>f.id===id?{...f,statut}:f)}));
   const totalPaye=data.factures.filter(f=>f.statut==="payee").reduce((s,f)=>s+calcTotaux(f.lignes).ttc,0);
   const totalAttente=data.factures.filter(f=>f.statut!=="payee").reduce((s,f)=>s+calcTotaux(f.lignes).ttc,0);
-  return <div>
-    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}>
-      <span style={{fontWeight:700,fontSize:20,color:"#1e293b"}}>Factures</span>
-      <button style={btnP} onClick={()=>setShowForm(true)}>+ Nouvelle facture</button>
+  return <div style={{fontFamily:FONT_BODY}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+      <span style={{fontWeight:700,fontSize:19,color:COLORS.ink,fontFamily:FONT_DISPLAY}}>Factures</span>
+      <button style={btnP} onClick={()=>setShowForm(true)}><Icon name="plus" size={13} style={{marginRight:5,verticalAlign:-2}}/>Nouvelle facture</button>
     </div>
-    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:20}}>
-      <div style={{background:"#f0fdf4",border:"1px solid #bbf7d0",borderRadius:12,padding:"14px 16px"}}><div style={{fontSize:12,color:"#16a34a",fontWeight:700}}>💰 Encaissé</div><div style={{fontSize:20,fontWeight:800,color:"#16a34a",marginTop:4}}>{totalPaye.toLocaleString("fr-FR",{maximumFractionDigits:0})} €</div></div>
-      <div style={{background:"#fffbeb",border:"1px solid #fde68a",borderRadius:12,padding:"14px 16px"}}><div style={{fontSize:12,color:"#d97706",fontWeight:700}}>⏳ En attente</div><div style={{fontSize:20,fontWeight:800,color:"#d97706",marginTop:4}}>{totalAttente.toLocaleString("fr-FR",{maximumFractionDigits:0})} €</div></div>
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:18}}>
+      <div style={{background:COLORS.successBg,border:`1px solid ${COLORS.success}30`,borderRadius:12,padding:"12px 14px"}}>
+        <div style={{fontSize:11,color:COLORS.success,fontWeight:700,textTransform:"uppercase",letterSpacing:0.3}}>Encaissé</div>
+        <div style={{fontSize:19,fontWeight:800,color:COLORS.success,marginTop:4,fontFamily:FONT_MONO}}>{totalPaye.toLocaleString("fr-FR",{maximumFractionDigits:0})} €</div>
+      </div>
+      <div style={{background:COLORS.pendingBg,border:`1px solid ${COLORS.pending}30`,borderRadius:12,padding:"12px 14px"}}>
+        <div style={{fontSize:11,color:COLORS.pending,fontWeight:700,textTransform:"uppercase",letterSpacing:0.3}}>En attente</div>
+        <div style={{fontSize:19,fontWeight:800,color:COLORS.pending,marginTop:4,fontFamily:FONT_MONO}}>{totalAttente.toLocaleString("fr-FR",{maximumFractionDigits:0})} €</div>
+      </div>
     </div>
-    <div style={{display:"flex",flexDirection:"column",gap:12}}>
-      {data.factures.map(f=>{const {ttc}=calcTotaux(f.lignes);return <div key={f.id} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:14,padding:16}}>
+    <div style={{display:"flex",flexDirection:"column",gap:10}}>
+      {data.factures.map(f=>{const {ttc}=calcTotaux(f.lignes);return <div key={f.id} style={{background:"#fff",border:`1px solid ${COLORS.line}`,borderRadius:14,padding:15}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-          <div><div style={{fontSize:12,color:"#94a3b8",fontWeight:600}}>{f.numero}</div><div style={{fontWeight:700,color:"#1e293b",fontSize:15,marginTop:2}}>{f.client}</div><div style={{color:"#475569",fontSize:13,marginTop:2}}>{f.travaux}</div></div>
-          <div style={{fontWeight:800,fontSize:17,color:"#1e40af"}}>{ttc.toLocaleString("fr-FR",{maximumFractionDigits:0})} € TTC</div>
+          <div><div style={{fontSize:11,color:COLORS.inkSoft,fontWeight:600,fontFamily:FONT_MONO}}>{f.numero}</div><div style={{fontWeight:700,color:COLORS.ink,fontSize:14.5,marginTop:2}}>{f.client}</div><div style={{color:COLORS.inkSoft,fontSize:12.5,marginTop:2}}>{f.travaux}</div></div>
+          <div style={{fontWeight:800,fontSize:16,color:COLORS.blueprint,fontFamily:FONT_MONO}}>{ttc.toLocaleString("fr-FR",{maximumFractionDigits:0})} € TTC</div>
         </div>
         <div style={{display:"flex",alignItems:"center",gap:8,marginTop:12,flexWrap:"wrap"}}>
-          <select value={f.statut} onChange={e=>updStatut(f.id,e.target.value)} style={{border:"none",background:STATUT_FACTURE[f.statut]?.bg,color:STATUT_FACTURE[f.statut]?.color,borderRadius:6,padding:"3px 8px",fontWeight:600,fontSize:12,cursor:"pointer"}}>{Object.entries(STATUT_FACTURE).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}</select>
-          <span style={{fontSize:12,color:"#94a3b8"}}>📅 {new Date((f.dateEmission||TODAY)+"T12:00:00").toLocaleDateString("fr-FR")}</span>
-          {f.dateEcheance&&<span style={{fontSize:12,color:"#94a3b8"}}>⏰ Éch: {new Date(f.dateEcheance+"T12:00:00").toLocaleDateString("fr-FR")}</span>}
+          <select value={f.statut} onChange={e=>updStatut(f.id,e.target.value)} style={{border:"none",background:STATUT_FACTURE[f.statut]?.bg,color:STATUT_FACTURE[f.statut]?.color,borderRadius:6,padding:"3px 8px",fontWeight:600,fontSize:11.5,cursor:"pointer",fontFamily:FONT_BODY}}>{Object.entries(STATUT_FACTURE).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}</select>
+          <span style={{fontSize:11.5,color:COLORS.inkSoft,fontFamily:FONT_MONO}}>{new Date((f.dateEmission||TODAY)+"T12:00:00").toLocaleDateString("fr-FR")}</span>
+          {f.dateEcheance&&<span style={{fontSize:11.5,color:COLORS.inkSoft,fontFamily:FONT_MONO}}>Éch. {new Date(f.dateEcheance+"T12:00:00").toLocaleDateString("fr-FR")}</span>}
           <div style={{marginLeft:"auto",display:"flex",gap:6}}>
-            <button style={btnS} onClick={()=>setApercu({doc:f,type:"facture"})}>🖨️ PDF</button>
+            <button style={btnS} onClick={()=>setApercu({doc:f,type:"facture"})}>PDF</button>
             <button onClick={()=>del(f.id)} style={btnD}>Suppr.</button>
           </div>
         </div>
       </div>;})}
-      {data.factures.length===0&&<div style={{textAlign:"center",color:"#94a3b8",padding:32,fontSize:14}}>Aucune facture — convertissez un devis accepté !</div>}
+      {data.factures.length===0&&<div style={{textAlign:"center",color:COLORS.inkSoft,padding:28,fontSize:13.5}}>Aucune facture — convertissez un devis accepté !</div>}
     </div>
     {showForm&&<Modal title="Nouvelle facture" onClose={()=>setShowForm(false)} wide>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
@@ -471,15 +525,13 @@ function Factures({data,setData}){
       </div>
       <div style={{marginBottom:12}}><LignesEditor lignes={form.lignes} setLignes={l=>setForm(f=>({...f,lignes:l}))}/></div>
       <IR label="Notes"><input style={inp} value={form.notes} onChange={e=>setForm(f=>({...f,notes:e.target.value}))} placeholder="Conditions de paiement…"/></IR>
-      <div style={{display:"flex",gap:10,marginTop:8}}><button style={btnP} onClick={add}>Créer la facture</button><button style={{...btnD,background:"#f1f5f9",color:"#64748b"}} onClick={()=>setShowForm(false)}>Annuler</button></div>
+      <div style={{display:"flex",gap:10,marginTop:8}}><button style={btnP} onClick={add}>Créer la facture</button><button style={btnS} onClick={()=>setShowForm(false)}>Annuler</button></div>
     </Modal>}
     {apercu&&<ApercuDoc doc={apercu.doc} type={apercu.type} entreprise={data.entreprise} onClose={()=>setApercu(null)}/>}
   </div>;
 }
 
-// ── APP ───────────────────────────────────────────────────────────────────────
-
-// CLIENTS
+// ── CLIENTS ───────────────────────────────────────────────────────────────────
 function Clients({data,setData}){
   const [showForm,setShowForm]=useState(false);
   const [selected,setSelected]=useState(null);
@@ -487,59 +539,58 @@ function Clients({data,setData}){
   const add=()=>{if(!form.nom.trim())return;setData(d=>({...d,clients:[...d.clients,{...form,id:Date.now()}]}));setForm({nom:'',entreprise:'',email:'',tel:'',adresse:'',notes:''});setShowForm(false);};
   const del=(id)=>setData(d=>({...d,clients:d.clients.filter(c=>c.id!==id)}));
   const getHisto=(c)=>({devs:data.devis.filter(d=>d.client===c.nom),facs:data.factures.filter(f=>f.client===c.nom),chans:data.chantiers.filter(ch=>ch.client===c.nom)});
-  const inp2={width:'100%',padding:'8px 10px',borderRadius:8,border:'1px solid #e2e8f0',fontSize:14,color:'#1e293b',boxSizing:'border-box',outline:'none'};
-  return <div>
-    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:18}}>
-      <div><span style={{fontWeight:700,fontSize:20,color:'#1e293b'}}>Clients</span><span style={{marginLeft:10,background:'#eff6ff',color:'#1e40af',borderRadius:20,padding:'2px 12px',fontSize:13,fontWeight:600}}>{data.clients.length} clients</span></div>
-      <button style={{background:'#1e40af',color:'#fff',border:'none',borderRadius:8,padding:'9px 18px',fontWeight:600,fontSize:13,cursor:'pointer'}} onClick={()=>setShowForm(true)}>+ Nouveau client</button>
+  return <div style={{fontFamily:FONT_BODY}}>
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+      <div><span style={{fontWeight:700,fontSize:19,color:COLORS.ink,fontFamily:FONT_DISPLAY}}>Clients</span><span style={{marginLeft:10,background:COLORS.blueprintBg,color:COLORS.blueprint,borderRadius:20,padding:'2px 12px',fontSize:12.5,fontWeight:600}}>{data.clients.length}</span></div>
+      <button style={btnP} onClick={()=>setShowForm(true)}><Icon name="plus" size={13} style={{marginRight:5,verticalAlign:-2}}/>Nouveau client</button>
     </div>
-    <div style={{display:'flex',flexDirection:'column',gap:12}}>
+    <div style={{display:'flex',flexDirection:'column',gap:10}}>
       {data.clients.map(c=>{
         const {devs,facs,chans}=getHisto(c);
         const ca=facs.filter(f=>f.statut==='payee').reduce((s,f)=>s+calcTotaux(f.lignes).ttc,0);
-        return <div key={c.id} style={{background:'#fff',border:'1px solid #e2e8f0',borderRadius:14,padding:16,cursor:'pointer'}} onClick={()=>setSelected(selected?.id===c.id?null:c)}>
+        return <div key={c.id} style={{background:'#fff',border:`1px solid ${COLORS.line}`,borderRadius:14,padding:15,cursor:'pointer'}} onClick={()=>setSelected(selected?.id===c.id?null:c)}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
             <div>
-              <div style={{fontWeight:700,fontSize:16,color:'#1e293b'}}>{c.nom}</div>
-              {c.entreprise&&<div style={{fontSize:13,color:'#64748b',marginTop:2}}>🏢 {c.entreprise}</div>}
-              <div style={{display:'flex',gap:16,marginTop:6,flexWrap:'wrap'}}>
-                {c.tel&&<span style={{fontSize:13,color:'#475569'}}>📞 {c.tel}</span>}
-                {c.email&&<span style={{fontSize:13,color:'#475569'}}>✉️ {c.email}</span>}
+              <div style={{fontWeight:700,fontSize:15,color:COLORS.ink}}>{c.nom}</div>
+              {c.entreprise&&<div style={{fontSize:12.5,color:COLORS.inkSoft,marginTop:2}}>{c.entreprise}</div>}
+              <div style={{display:'flex',gap:14,marginTop:6,flexWrap:'wrap'}}>
+                {c.tel&&<span style={{fontSize:12.5,color:COLORS.inkSoft,fontFamily:FONT_MONO}}>{c.tel}</span>}
+                {c.email&&<span style={{fontSize:12.5,color:COLORS.inkSoft}}>{c.email}</span>}
               </div>
             </div>
             <div style={{textAlign:'right'}}>
-              <div style={{fontWeight:700,color:'#22c55e',fontSize:15}}>{Number(ca).toLocaleString('fr-FR',{maximumFractionDigits:0})} € CA</div>
-              <div style={{fontSize:12,color:'#94a3b8',marginTop:2}}>{chans.length} chantier(s)</div>
+              <div style={{fontWeight:700,color:COLORS.success,fontSize:14.5,fontFamily:FONT_MONO}}>{Number(ca).toLocaleString('fr-FR',{maximumFractionDigits:0})} €</div>
+              <div style={{fontSize:11,color:COLORS.inkSoft,marginTop:2}}>{chans.length} chantier(s)</div>
             </div>
           </div>
-          {selected?.id===c.id&&<div style={{marginTop:14,paddingTop:14,borderTop:'1px solid #e2e8f0'}}>
-            {c.adresse&&<div style={{fontSize:13,color:'#64748b',marginBottom:8}}>📍 {c.adresse}</div>}
-            {c.notes&&<div style={{fontSize:13,color:'#475569',padding:'8px 12px',background:'#f8fafc',borderRadius:8,marginBottom:10,borderLeft:'3px solid #cbd5e1'}}>{c.notes}</div>}
+          {selected?.id===c.id&&<div style={{marginTop:14,paddingTop:14,borderTop:`1px solid ${COLORS.line}`}}>
+            {c.adresse&&<div style={{fontSize:12.5,color:COLORS.inkSoft,marginBottom:8}}>{c.adresse}</div>}
+            {c.notes&&<div style={{fontSize:12.5,color:COLORS.ink,padding:'8px 12px',background:COLORS.lineSoft,borderRadius:8,marginBottom:10,borderLeft:`3px solid ${COLORS.line}`}}>{c.notes}</div>}
             <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8,marginBottom:10}}>
-              <div style={{background:'#eff6ff',borderRadius:10,padding:10,textAlign:'center'}}><div style={{fontSize:20,fontWeight:800,color:'#1e40af'}}>{devs.length}</div><div style={{fontSize:11,color:'#64748b'}}>Devis</div></div>
-              <div style={{background:'#f0fdf4',borderRadius:10,padding:10,textAlign:'center'}}><div style={{fontSize:20,fontWeight:800,color:'#16a34a'}}>{facs.length}</div><div style={{fontSize:11,color:'#64748b'}}>Factures</div></div>
-              <div style={{background:'#faf5ff',borderRadius:10,padding:10,textAlign:'center'}}><div style={{fontSize:20,fontWeight:800,color:'#7c3aed'}}>{chans.length}</div><div style={{fontSize:11,color:'#64748b'}}>Chantiers</div></div>
+              <div style={{background:COLORS.blueprintBg,borderRadius:10,padding:10,textAlign:'center'}}><div style={{fontSize:18,fontWeight:800,color:COLORS.blueprint,fontFamily:FONT_MONO}}>{devs.length}</div><div style={{fontSize:10.5,color:COLORS.inkSoft}}>Devis</div></div>
+              <div style={{background:COLORS.successBg,borderRadius:10,padding:10,textAlign:'center'}}><div style={{fontSize:18,fontWeight:800,color:COLORS.success,fontFamily:FONT_MONO}}>{facs.length}</div><div style={{fontSize:10.5,color:COLORS.inkSoft}}>Factures</div></div>
+              <div style={{background:COLORS.violetBg,borderRadius:10,padding:10,textAlign:'center'}}><div style={{fontSize:18,fontWeight:800,color:COLORS.violet,fontFamily:FONT_MONO}}>{chans.length}</div><div style={{fontSize:10.5,color:COLORS.inkSoft}}>Chantiers</div></div>
             </div>
-            <button onClick={(e)=>{e.stopPropagation();del(c.id);}} style={{background:'#fee2e2',color:'#ef4444',border:'none',borderRadius:8,padding:'6px 14px',fontWeight:600,fontSize:12,cursor:'pointer'}}>Supprimer ce client</button>
+            <button onClick={(e)=>{e.stopPropagation();del(c.id);}} style={btnD}>Supprimer ce client</button>
           </div>}
         </div>;
       })}
     </div>
     {showForm&&<Modal title="Nouveau client" onClose={()=>setShowForm(false)}>
-      <div style={{marginBottom:12}}><label style={{display:'block',fontSize:12,fontWeight:600,color:'#64748b',marginBottom:4}}>Nom / Prénom *</label><input style={inp2} value={form.nom} onChange={e=>setForm(f=>({...f,nom:e.target.value}))} placeholder="Ex : M. Dupont"/></div>
-      <div style={{marginBottom:12}}><label style={{display:'block',fontSize:12,fontWeight:600,color:'#64748b',marginBottom:4}}>Société</label><input style={inp2} value={form.entreprise} onChange={e=>setForm(f=>({...f,entreprise:e.target.value}))} placeholder="SCI, SARL…"/></div>
+      <IR label="Nom / Prénom *"><input style={inp} value={form.nom} onChange={e=>setForm(f=>({...f,nom:e.target.value}))} placeholder="Ex : M. Dupont"/></IR>
+      <IR label="Société"><input style={inp} value={form.entreprise} onChange={e=>setForm(f=>({...f,entreprise:e.target.value}))} placeholder="SCI, SARL…"/></IR>
       <div style={{display:'flex',gap:10}}>
-        <div style={{marginBottom:12,flex:1}}><label style={{display:'block',fontSize:12,fontWeight:600,color:'#64748b',marginBottom:4}}>Téléphone</label><input style={inp2} value={form.tel} onChange={e=>setForm(f=>({...f,tel:e.target.value}))} placeholder="06 12 34 56 78"/></div>
-        <div style={{marginBottom:12,flex:1}}><label style={{display:'block',fontSize:12,fontWeight:600,color:'#64748b',marginBottom:4}}>Email</label><input style={inp2} value={form.email} onChange={e=>setForm(f=>({...f,email:e.target.value}))} placeholder="client@email.fr"/></div>
+        <IR label="Téléphone"><input style={inp} value={form.tel} onChange={e=>setForm(f=>({...f,tel:e.target.value}))} placeholder="06 12 34 56 78"/></IR>
+        <IR label="Email"><input style={inp} value={form.email} onChange={e=>setForm(f=>({...f,email:e.target.value}))} placeholder="client@email.fr"/></IR>
       </div>
-      <div style={{marginBottom:12}}><label style={{display:'block',fontSize:12,fontWeight:600,color:'#64748b',marginBottom:4}}>Adresse</label><input style={inp2} value={form.adresse} onChange={e=>setForm(f=>({...f,adresse:e.target.value}))} placeholder="12 rue des Fleurs, 75001 Paris"/></div>
-      <div style={{marginBottom:12}}><label style={{display:'block',fontSize:12,fontWeight:600,color:'#64748b',marginBottom:4}}>Notes</label><textarea style={{...inp2,minHeight:60,resize:'vertical'}} value={form.notes} onChange={e=>setForm(f=>({...f,notes:e.target.value}))}/></div>
-      <div style={{display:'flex',gap:10}}><button style={{background:'#1e40af',color:'#fff',border:'none',borderRadius:8,padding:'9px 18px',fontWeight:600,fontSize:13,cursor:'pointer'}} onClick={add}>Ajouter</button><button style={{background:'#f1f5f9',color:'#64748b',border:'none',borderRadius:8,padding:'9px 18px',fontWeight:600,fontSize:13,cursor:'pointer'}} onClick={()=>setShowForm(false)}>Annuler</button></div>
+      <IR label="Adresse"><input style={inp} value={form.adresse} onChange={e=>setForm(f=>({...f,adresse:e.target.value}))} placeholder="12 rue des Fleurs, 75001 Paris"/></IR>
+      <IR label="Notes"><textarea style={{...inp,minHeight:60,resize:'vertical'}} value={form.notes} onChange={e=>setForm(f=>({...f,notes:e.target.value}))}/></IR>
+      <div style={{display:'flex',gap:10}}><button style={btnP} onClick={add}>Ajouter</button><button style={btnS} onClick={()=>setShowForm(false)}>Annuler</button></div>
     </Modal>}
   </div>;
 }
 
-// SUIVI DU TEMPS
+// ── SUIVI DU TEMPS ────────────────────────────────────────────────────────────
 function Temps({data,setData}){
   const [showForm,setShowForm]=useState(false);
   const [form,setForm]=useState({chantier:'',date:TODAY,heures:8,description:'',ouvrier:''});
@@ -548,103 +599,100 @@ function Temps({data,setData}){
   const total=(data.temps||[]).reduce((s,t)=>s+(+t.heures||0),0);
   const parChantier={};(data.temps||[]).forEach(t=>{parChantier[t.chantier]=(parChantier[t.chantier]||0)+(+t.heures||0);});
   const tries=[...(data.temps||[])].sort((a,b)=>b.date.localeCompare(a.date));
-  const inp2={width:'100%',padding:'8px 10px',borderRadius:8,border:'1px solid #e2e8f0',fontSize:14,color:'#1e293b',boxSizing:'border-box',outline:'none'};
-  return <div>
-    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:18}}>
-      <div><span style={{fontWeight:700,fontSize:20,color:'#1e293b'}}>Suivi du temps</span><span style={{marginLeft:10,background:'#eff6ff',color:'#1e40af',borderRadius:20,padding:'2px 12px',fontSize:13,fontWeight:600}}>{total}h total</span></div>
-      <button style={{background:'#1e40af',color:'#fff',border:'none',borderRadius:8,padding:'9px 18px',fontWeight:600,fontSize:13,cursor:'pointer'}} onClick={()=>setShowForm(true)}>+ Saisir des heures</button>
+  return <div style={{fontFamily:FONT_BODY}}>
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+      <div><span style={{fontWeight:700,fontSize:19,color:COLORS.ink,fontFamily:FONT_DISPLAY}}>Suivi du temps</span><span style={{marginLeft:10,background:COLORS.blueprintBg,color:COLORS.blueprint,borderRadius:20,padding:'2px 12px',fontSize:12.5,fontWeight:600,fontFamily:FONT_MONO}}>{total}h total</span></div>
+      <button style={btnP} onClick={()=>setShowForm(true)}><Icon name="plus" size={13} style={{marginRight:5,verticalAlign:-2}}/>Saisir des heures</button>
     </div>
-    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(130px,1fr))',gap:10,marginBottom:20}}>
-      {Object.entries(parChantier).map(([nom,h])=><div key={nom} style={{background:'#fff',border:'1px solid #e2e8f0',borderRadius:12,padding:'12px 14px'}}>
-        <div style={{fontSize:22,fontWeight:800,color:'#1e40af'}}>{h}h</div>
-        <div style={{fontSize:12,color:'#64748b',marginTop:2,fontWeight:600}}>{nom.split('–')[0].trim()}</div>
+    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(130px,1fr))',gap:10,marginBottom:18}}>
+      {Object.entries(parChantier).map(([nom,h])=><div key={nom} style={{background:'#fff',border:`1px solid ${COLORS.line}`,borderRadius:12,padding:'11px 13px'}}>
+        <div style={{fontSize:19,fontWeight:800,color:COLORS.blueprint,fontFamily:FONT_MONO}}>{h}h</div>
+        <div style={{fontSize:11.5,color:COLORS.inkSoft,marginTop:2,fontWeight:600}}>{nom.split('–')[0].trim()}</div>
       </div>)}
     </div>
     <div style={{display:'flex',flexDirection:'column',gap:8}}>
-      {tries.map(t=><div key={t.id} style={{background:'#fff',border:'1px solid #e2e8f0',borderRadius:12,padding:'12px 16px',display:'flex',alignItems:'center',gap:12}}>
-        <div style={{background:'#eff6ff',borderRadius:10,padding:'10px 14px',textAlign:'center',minWidth:56,flexShrink:0}}><div style={{fontWeight:800,fontSize:18,color:'#1e40af'}}>{t.heures}h</div></div>
+      {tries.map(t=><div key={t.id} style={{background:'#fff',border:`1px solid ${COLORS.line}`,borderRadius:12,padding:'11px 14px',display:'flex',alignItems:'center',gap:12}}>
+        <div style={{background:COLORS.blueprintBg,borderRadius:10,padding:'9px 12px',textAlign:'center',minWidth:52,flexShrink:0}}><div style={{fontWeight:800,fontSize:16,color:COLORS.blueprint,fontFamily:FONT_MONO}}>{t.heures}h</div></div>
         <div style={{flex:1}}>
-          <div style={{fontWeight:600,color:'#1e293b',fontSize:14}}>{t.chantier}</div>
-          {t.description&&<div style={{fontSize:13,color:'#64748b',marginTop:2}}>{t.description}</div>}
-          <div style={{fontSize:12,color:'#94a3b8',marginTop:2}}>📅 {t.date&&new Date(t.date+"T12:00:00").toLocaleDateString("fr-FR")}{t.ouvrier&&" · 👷 "+t.ouvrier}</div>
+          <div style={{fontWeight:600,color:COLORS.ink,fontSize:13.5}}>{t.chantier}</div>
+          {t.description&&<div style={{fontSize:12.5,color:COLORS.inkSoft,marginTop:2}}>{t.description}</div>}
+          <div style={{fontSize:11,color:COLORS.inkSoft,marginTop:2,fontFamily:FONT_MONO}}>{t.date&&new Date(t.date+"T12:00:00").toLocaleDateString("fr-FR")}{t.ouvrier&&" · "+t.ouvrier}</div>
         </div>
-        <button onClick={()=>del(t.id)} style={{background:'#fee2e2',color:'#ef4444',border:'none',borderRadius:8,padding:'6px 12px',fontWeight:600,fontSize:12,cursor:'pointer'}}>×</button>
+        <button onClick={()=>del(t.id)} style={btnD}>×</button>
       </div>)}
-      {tries.length===0&&<div style={{textAlign:'center',color:'#94a3b8',padding:40,fontSize:14}}>⏱️ Aucune heure saisie pour l instant</div>}
+      {tries.length===0&&<div style={{textAlign:'center',color:COLORS.inkSoft,padding:36,fontSize:13.5}}>Aucune heure saisie pour l'instant</div>}
     </div>
     {showForm&&<Modal title="Saisir des heures" onClose={()=>setShowForm(false)}>
-      <div style={{marginBottom:12}}><label style={{display:'block',fontSize:12,fontWeight:600,color:'#64748b',marginBottom:4}}>Chantier *</label><select style={inp2} value={form.chantier} onChange={e=>setForm(f=>({...f,chantier:e.target.value}))}><option value="">— Choisir —</option>{data.chantiers.map(c=><option key={c.id} value={c.nom}>{c.nom}</option>)}</select></div>
+      <IR label="Chantier *"><select style={inp} value={form.chantier} onChange={e=>setForm(f=>({...f,chantier:e.target.value}))}><option value="">— Choisir —</option>{data.chantiers.map(c=><option key={c.id} value={c.nom}>{c.nom}</option>)}</select></IR>
       <div style={{display:'flex',gap:10}}>
-        <div style={{marginBottom:12,flex:1}}><label style={{display:'block',fontSize:12,fontWeight:600,color:'#64748b',marginBottom:4}}>Date</label><input type="date" style={inp2} value={form.date} onChange={e=>setForm(f=>({...f,date:e.target.value}))}/></div>
-        <div style={{marginBottom:12,flex:1}}><label style={{display:'block',fontSize:12,fontWeight:600,color:'#64748b',marginBottom:4}}>Heures</label><input type="number" min="0.5" max="24" step="0.5" style={inp2} value={form.heures} onChange={e=>setForm(f=>({...f,heures:e.target.value}))}/></div>
+        <IR label="Date"><input type="date" style={inp} value={form.date} onChange={e=>setForm(f=>({...f,date:e.target.value}))}/></IR>
+        <IR label="Heures"><input type="number" min="0.5" max="24" step="0.5" style={inp} value={form.heures} onChange={e=>setForm(f=>({...f,heures:e.target.value}))}/></IR>
       </div>
-      <div style={{marginBottom:12}}><label style={{display:'block',fontSize:12,fontWeight:600,color:'#64748b',marginBottom:4}}>Description</label><input style={inp2} value={form.description} onChange={e=>setForm(f=>({...f,description:e.target.value}))} placeholder="Ex : Pose carrelage"/></div>
-      <div style={{marginBottom:12}}><label style={{display:'block',fontSize:12,fontWeight:600,color:'#64748b',marginBottom:4}}>Ouvrier / Équipe</label><input style={inp2} value={form.ouvrier} onChange={e=>setForm(f=>({...f,ouvrier:e.target.value}))} placeholder="Ex : Équipe 1"/></div>
-      <div style={{display:'flex',gap:10}}><button style={{background:'#1e40af',color:'#fff',border:'none',borderRadius:8,padding:'9px 18px',fontWeight:600,fontSize:13,cursor:'pointer'}} onClick={add}>Ajouter</button><button style={{background:'#f1f5f9',color:'#64748b',border:'none',borderRadius:8,padding:'9px 18px',fontWeight:600,fontSize:13,cursor:'pointer'}} onClick={()=>setShowForm(false)}>Annuler</button></div>
+      <IR label="Description"><input style={inp} value={form.description} onChange={e=>setForm(f=>({...f,description:e.target.value}))} placeholder="Ex : Pose carrelage"/></IR>
+      <IR label="Ouvrier / Équipe"><input style={inp} value={form.ouvrier} onChange={e=>setForm(f=>({...f,ouvrier:e.target.value}))} placeholder="Ex : Équipe 1"/></IR>
+      <div style={{display:'flex',gap:10}}><button style={btnP} onClick={add}>Ajouter</button><button style={btnS} onClick={()=>setShowForm(false)}>Annuler</button></div>
     </Modal>}
   </div>;
 }
 
-// DASHBOARD
+// ── DASHBOARD ─────────────────────────────────────────────────────────────────
 function Dashboard({data}){
   const ca=data.factures.filter(f=>f.statut==="payee").reduce((s,f)=>s+calcTotaux(f.lignes).ttc,0);
   const enAtt=data.factures.filter(f=>f.statut!=="payee").reduce((s,f)=>s+calcTotaux(f.lignes).ttc,0);
   const rdvAuj=data.rdv.filter(r=>r.date===TODAY);
   const urgent=data.taches.filter(t=>!t.fait&&t.priorite==="haute");
-  const CFGrdv={chantier:{emoji:"🏗️"},devis:{emoji:"📋"},client:{emoji:"👤"},autre:{emoji:"📅"}};
-  const Stat=({emoji,label,value,color})=><div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:14,padding:16,borderTop:}}>
-    <div style={{fontSize:22,marginBottom:6}}>{emoji}</div>
-    <div style={{fontSize:22,fontWeight:800,color}}>{value}</div>
-    <div style={{fontSize:13,fontWeight:600,color:"#1e293b",marginTop:2}}>{label}</div>
+  const Stat=({icon,label,value,color,bg})=><div style={{background:"#fff",border:`1px solid ${COLORS.line}`,borderRadius:12,padding:"11px 12px",borderTop:`3px solid ${color}`}}>
+    <Icon name={icon} size={16} color={COLORS.inkSoft} style={{marginBottom:6}}/>
+    <div style={{fontSize:17,fontWeight:700,color,fontFamily:FONT_MONO,lineHeight:1}}>{value}</div>
+    <div style={{fontSize:11,fontWeight:500,color:COLORS.inkSoft,marginTop:4}}>{label}</div>
   </div>;
-  return <div>
-    <div style={{fontWeight:700,fontSize:20,color:"#1e293b",marginBottom:18}}>Tableau de bord</div>
-    <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:12,marginBottom:20}}>
-      <Stat emoji="💰" label="CA encaissé" value={Number(ca).toLocaleString("fr-FR",{maximumFractionDigits:0})+" €"} color="#22c55e"/>
-      <Stat emoji="⏳" label="En attente" value={Number(enAtt).toLocaleString("fr-FR",{maximumFractionDigits:0})+" €"} color="#f59e0b"/>
-      <Stat emoji="🏗️" label="Chantiers actifs" value={data.chantiers.filter(c=>c.statut==="en_cours").length} color="#3b82f6"/>
-      <Stat emoji="📋" label="Devis à faire" value={data.devis.filter(d=>d.statut==="a_faire").length} color="#8b5cf6"/>
+  return <div style={{fontFamily:FONT_BODY}}>
+    <div style={{fontWeight:700,fontSize:20,color:COLORS.ink,marginBottom:16,fontFamily:FONT_DISPLAY}}>Tableau de bord</div>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:10,marginBottom:16}}>
+      <Stat icon="money" label="CA encaissé" value={Number(ca).toLocaleString("fr-FR",{maximumFractionDigits:0})+" €"} color={COLORS.success}/>
+      <Stat icon="hourglass" label="En attente" value={Number(enAtt).toLocaleString("fr-FR",{maximumFractionDigits:0})+" €"} color={COLORS.pending}/>
+      <Stat icon="building" label="Chantiers actifs" value={data.chantiers.filter(c=>c.statut==="en_cours").length} color={COLORS.blueprint}/>
+      <Stat icon="file" label="Devis à faire" value={data.devis.filter(d=>d.statut==="a_faire").length} color={COLORS.violet}/>
     </div>
-    {rdvAuj.length>0&&<div style={{background:"#eff6ff",border:"1px solid #bfdbfe",borderRadius:14,padding:16,marginBottom:16}}>
-      <div style={{fontWeight:700,fontSize:14,color:"#1e40af",marginBottom:10}}>📅 Aujourd hui — {rdvAuj.length} rendez-vous</div>
-      {rdvAuj.map(r=><div key={r.id} style={{display:"flex",gap:10,alignItems:"center",background:"#fff",borderRadius:10,padding:"10px 14px",marginBottom:6}}>
-        <span style={{fontSize:18}}>{CFGrdv[r.type]?.emoji||"📅"}</span>
-        <div><div style={{fontWeight:600,fontSize:14,color:"#1e293b"}}>{r.titre}</div><div style={{fontSize:12,color:"#64748b"}}>{r.heure} · {r.duree} min{r.client?" · "+r.client:""}</div></div>
+    {rdvAuj.length>0&&<div style={{background:COLORS.blueprintBg,border:`1px solid ${COLORS.blueprint}30`,borderRadius:12,padding:14,marginBottom:14}}>
+      <div style={{display:"flex",alignItems:"center",gap:6,fontWeight:700,fontSize:12.5,color:COLORS.blueprint,marginBottom:9,textTransform:"uppercase",letterSpacing:0.3}}><Icon name="calendar" size={14} color={COLORS.blueprint}/>Aujourd'hui — {rdvAuj.length} rendez-vous</div>
+      {rdvAuj.map(r=><div key={r.id} style={{display:"flex",gap:10,alignItems:"center",background:"#fff",borderRadius:10,padding:"9px 12px",marginBottom:6}}>
+        <div><div style={{fontWeight:600,fontSize:13.5,color:COLORS.ink}}>{r.titre}</div><div style={{fontSize:11.5,color:COLORS.inkSoft,fontFamily:FONT_MONO}}>{r.heure} · {r.duree}min{r.client?" · "+r.client:""}</div></div>
       </div>)}
     </div>}
-    {urgent.length>0&&<div style={{background:"#fef2f2",border:"1px solid #fecaca",borderRadius:14,padding:16,marginBottom:16}}>
-      <div style={{fontWeight:700,fontSize:14,color:"#ef4444",marginBottom:10}}>🔴 Tâches urgentes ({urgent.length})</div>
-      {urgent.map(t=><div key={t.id} style={{background:"#fff",borderRadius:10,padding:"10px 14px",marginBottom:6}}><div style={{fontWeight:600,fontSize:14,color:"#1e293b"}}>{t.titre}</div></div>)}
+    {urgent.length>0&&<div style={{background:COLORS.dangerBg,border:`1px solid ${COLORS.danger}30`,borderRadius:12,padding:14,marginBottom:14}}>
+      <div style={{display:"flex",alignItems:"center",gap:6,fontWeight:700,fontSize:12.5,color:COLORS.danger,marginBottom:9,textTransform:"uppercase",letterSpacing:0.3}}><Icon name="alert" size={14} color={COLORS.danger}/>Tâches urgentes ({urgent.length})</div>
+      {urgent.map(t=><div key={t.id} style={{background:"#fff",borderRadius:10,padding:"9px 12px",marginBottom:6}}><div style={{fontWeight:600,fontSize:13.5,color:COLORS.ink}}>{t.titre}</div></div>)}
     </div>}
-    <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:14,padding:16}}>
-      <div style={{fontWeight:700,fontSize:14,color:"#1e293b",marginBottom:12}}>🏗️ Avancement chantiers</div>
-      {data.chantiers.map(c=><div key={c.id} style={{marginBottom:12}}>
-        <div style={{display:"flex",justifyContent:"space-between",fontSize:13,marginBottom:4}}><span style={{fontWeight:600}}>{c.nom}</span><span style={{fontWeight:700,color:"#1e40af"}}>{c.avancement}%</span></div>
-        <div style={{background:"#e2e8f0",borderRadius:8,height:8,overflow:"hidden"}}><div style={{height:"100%",width:,background:c.avancement===100?"#22c55e":"#1e40af",borderRadius:8}}/></div>
+    <div style={{background:"#fff",border:`1px solid ${COLORS.line}`,borderRadius:12,padding:14}}>
+      <div style={{display:"flex",alignItems:"center",gap:6,fontWeight:700,fontSize:12.5,color:COLORS.ink,marginBottom:11,textTransform:"uppercase",letterSpacing:0.3}}><Icon name="building" size={14} color={COLORS.inkSoft}/>Avancement chantiers</div>
+      {data.chantiers.map(c=><div key={c.id} style={{marginBottom:11}}>
+        <div style={{display:"flex",justifyContent:"space-between",fontSize:12.5,marginBottom:4}}><span style={{fontWeight:600,color:COLORS.ink}}>{c.nom}</span><span style={{fontWeight:700,color:COLORS.blueprint,fontFamily:FONT_MONO}}>{c.avancement}%</span></div>
+        <div style={{background:COLORS.lineSoft,borderRadius:8,height:6,overflow:"hidden"}}><div style={{height:"100%",width:`${c.avancement}%`,background:c.avancement===100?COLORS.success:COLORS.blueprint,borderRadius:8}}/></div>
       </div>)}
     </div>
   </div>;
 }
 
-// PARAMÈTRES
+// ── PARAMÈTRES ────────────────────────────────────────────────────────────────
 function Parametres({data,setData}){
   const [form,setForm]=useState(data.entreprise);
   const [saved,setSaved]=useState(false);
   const save=()=>{setData(d=>({...d,entreprise:form}));setSaved(true);setTimeout(()=>setSaved(false),2000);};
-  const inp2={width:"100%",padding:"8px 10px",borderRadius:8,border:"1px solid #e2e8f0",fontSize:14,color:"#1e293b",boxSizing:"border-box",outline:"none"};
-  return <div>
-    <div style={{fontWeight:700,fontSize:20,color:"#1e293b",marginBottom:18}}>⚙️ Paramètres entreprise</div>
-    <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:14,padding:20,marginBottom:16}}>
-      {[["Nom de l entreprise *","nom"],["SIRET","siret"],["N° TVA","tva"],["Adresse","adresse"],["Code postal","cp"],["Ville","ville"],["Téléphone","tel"],["Email","email"]].map(([label,key])=><div key={key} style={{marginBottom:12}}><label style={{display:"block",fontSize:12,fontWeight:600,color:"#64748b",marginBottom:4}}>{label}</label><input style={inp2} value={form[key]||""} onChange={e=>setForm(f=>({...f,[key]:e.target.value}))}/></div>)}
-      <button style={{background:saved?"#16a34a":"#1e40af",color:"#fff",border:"none",borderRadius:8,padding:"9px 20px",fontWeight:600,fontSize:14,cursor:"pointer"}} onClick={save}>{saved?"✅ Enregistré !":"💾 Enregistrer"}</button>
+  return <div style={{fontFamily:FONT_BODY}}>
+    <div style={{display:"flex",alignItems:"center",gap:8,fontWeight:700,fontSize:19,color:COLORS.ink,marginBottom:16,fontFamily:FONT_DISPLAY}}><Icon name="settings" size={18} color={COLORS.ink}/>Paramètres entreprise</div>
+    <div style={{background:"#fff",border:`1px solid ${COLORS.line}`,borderRadius:14,padding:18,marginBottom:14}}>
+      {[["Nom de l'entreprise *","nom"],["SIRET","siret"],["N° TVA","tva"],["Adresse","adresse"],["Code postal","cp"],["Ville","ville"],["Téléphone","tel"],["Email","email"]].map(([label,key])=><IR key={key} label={label}><input style={inp} value={form[key]||""} onChange={e=>setForm(f=>({...f,[key]:e.target.value}))}/></IR>)}
+      <button style={{...btnP,background:saved?COLORS.success:COLORS.accent}} onClick={save}>{saved?"Enregistré !":"Enregistrer"}</button>
     </div>
-    <div style={{background:"#fffbeb",border:"1px solid #fde68a",borderRadius:14,padding:16}}>
-      <div style={{fontWeight:700,color:"#92400e",marginBottom:8}}>📋 Facturation électronique obligatoire (sept. 2026)</div>
-      <div style={{fontSize:13,color:"#78350f",lineHeight:1.6}}>À partir de septembre 2026, toutes les factures B2B doivent être émises en format électronique via une plateforme agréée (PDP). Assurez-vous que votre SIRET et N° TVA sont bien renseignés.</div>
+    <div style={{background:COLORS.pendingBg,border:`1px solid ${COLORS.pending}30`,borderRadius:14,padding:15}}>
+      <div style={{fontWeight:700,color:COLORS.pending,marginBottom:7,fontSize:13.5}}>Facturation électronique obligatoire (sept. 2026)</div>
+      <div style={{fontSize:12.5,color:COLORS.ink,lineHeight:1.6}}>À partir de septembre 2026, toutes les factures B2B doivent être émises en format électronique via une plateforme agréée (PDP). Assurez-vous que votre SIRET et N° TVA sont bien renseignés.</div>
     </div>
   </div>;
 }
 
+// ── APP ───────────────────────────────────────────────────────────────────────
 export default function App(){
   const [tab,setTab]=useState("dashboard");
   const [data,setData]=useState({...INITIAL_DATA,clients:[
@@ -657,35 +705,39 @@ export default function App(){
   ],entreprise:{nom:"Gest'Chantier BTP",siret:"123 456 789 00012",adresse:"12 rue des Artisans",cp:"75001",ville:"Paris",tel:"06 12 34 56 78",email:"contact@gestchantier.fr",tva:"FR12345678900"}});
   const rdvAuj=data.rdv.filter(r=>r.date===TODAY);
   const tabs=[
-    {id:"dashboard",emoji:"🏠",title:"Accueil",count:0},
-    {id:"agenda",emoji:"📅",title:"Agenda",count:rdvAuj.length},
-    {id:"taches",emoji:"✅",title:"Tâches",count:data.taches.filter(t=>!t.fait&&t.priorite==="haute").length},
-    {id:"clients",emoji:"👥",title:"Clients",count:0},
-    {id:"chantiers",emoji:"🏗️",title:"Chantiers",count:data.chantiers.filter(c=>c.statut==="en_cours").length},
-    {id:"devis",emoji:"📋",title:"Devis",count:data.devis.filter(d=>d.statut==="a_faire").length},
-    {id:"factures",emoji:"🧾",title:"Factures",count:data.factures.filter(f=>f.statut==="impayee").length},
-    {id:"temps",emoji:"⏱️",title:"Temps",count:0},
-    {id:"parametres",emoji:"⚙️",title:"Réglages",count:0},
+    {id:"dashboard",icon:"home",title:"Accueil",count:0},
+    {id:"agenda",icon:"calendar",title:"Agenda",count:rdvAuj.length},
+    {id:"taches",icon:"check",title:"Tâches",count:data.taches.filter(t=>!t.fait&&t.priorite==="haute").length},
+    {id:"clients",icon:"users",title:"Clients",count:0},
+    {id:"chantiers",icon:"building",title:"Chantiers",count:data.chantiers.filter(c=>c.statut==="en_cours").length},
+    {id:"devis",icon:"file",title:"Devis",count:data.devis.filter(d=>d.statut==="a_faire").length},
+    {id:"factures",icon:"receipt",title:"Factures",count:data.factures.filter(f=>f.statut==="impayee").length},
+    {id:"temps",icon:"clock",title:"Temps",count:0},
+    {id:"parametres",icon:"settings",title:"Réglages",count:0},
   ];
   const current=tabs.find(t=>t.id===tab);
-  return <div style={{minHeight:"100vh",background:"#f1f5f9",fontFamily:"'Segoe UI',system-ui,sans-serif",display:"flex",flexDirection:"column"}}>
-    <div style={{background:"#1e3a5f",padding:"14px 20px",display:"flex",alignItems:"center",gap:14,flexShrink:0}}>
-      <div style={{background:"#f59e0b",borderRadius:10,width:36,height:36,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>🔧</div>
-      <div style={{flex:1}}>
-        <div style={{color:"#fff",fontWeight:800,fontSize:17}}>Gest'Chantier</div>
-        <div style={{color:"#93c5fd",fontSize:11}}>{current?.title}</div>
+  return <div style={{minHeight:"100vh",background:COLORS.bg,fontFamily:FONT_BODY,display:"flex",flexDirection:"column"}}>
+    <GlobalStyle/>
+    <div style={{background:COLORS.ink,padding:"12px 18px 0",flexShrink:0}}>
+      <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:10}}>
+        <div style={{background:COLORS.accent,borderRadius:9,width:32,height:32,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+          <Icon name="building" size={17} color="#fff"/>
+        </div>
+        <div style={{flex:1}}>
+          <div style={{color:"#fff",fontWeight:700,fontSize:17,fontFamily:FONT_DISPLAY,letterSpacing:0.2}}>Gest'Chantier</div>
+        </div>
+        <div style={{color:"rgba(255,255,255,0.5)",fontSize:11.5,fontFamily:FONT_MONO}}>{new Date().toLocaleDateString("fr-FR",{weekday:"short",day:"numeric",month:"short"})}</div>
       </div>
-      <div style={{color:"#93c5fd",fontSize:12}}>{new Date().toLocaleDateString("fr-FR",{weekday:"short",day:"numeric",month:"short"})}</div>
-    </div>
-    <div style={{background:"#fff",borderBottom:"1px solid #e2e8f0",overflowX:"auto",display:"flex",whiteSpace:"nowrap",flexShrink:0}}>
-      {tabs.map(t=><button key={t.id} onClick={()=>setTab(t.id)} style={{padding:"10px 12px",border:"none",background:"none",cursor:"pointer",borderBottom:tab===t.id?"3px solid #1e40af":"3px solid transparent",display:"inline-flex",flexDirection:"column",alignItems:"center",gap:2,flexShrink:0,minWidth:56}}>
-        <span style={{fontSize:18}}>{t.emoji}</span>
-        <span style={{fontSize:10,fontWeight:tab===t.id?700:500,color:tab===t.id?"#1e40af":"#94a3b8"}}>{t.title}</span>
-        {t.count>0&&<span style={{background:"#ef4444",color:"#fff",borderRadius:20,padding:"0 5px",fontSize:9,fontWeight:700,lineHeight:"14px"}}>{t.count}</span>}
-      </button>)}
+      <div style={{display:"flex",overflowX:"auto",whiteSpace:"nowrap",gap:2}}>
+        {tabs.map(t=><button key={t.id} onClick={()=>setTab(t.id)} style={{padding:"6px 11px 9px",border:"none",background:"none",cursor:"pointer",borderBottom:tab===t.id?`2px solid ${COLORS.accent}`:"2px solid transparent",display:"inline-flex",flexDirection:"column",alignItems:"center",gap:4,flexShrink:0,minWidth:52,position:"relative"}}>
+          <Icon name={t.icon} size={17} color={tab===t.id?COLORS.accent:"rgba(255,255,255,0.5)"}/>
+          <span style={{fontSize:9.5,fontWeight:tab===t.id?700:500,color:tab===t.id?COLORS.accent:"rgba(255,255,255,0.5)",fontFamily:FONT_BODY}}>{t.title}</span>
+          {t.count>0&&<span style={{position:"absolute",top:2,right:6,background:COLORS.danger,color:"#fff",borderRadius:20,padding:"0 5px",fontSize:9,fontWeight:700,lineHeight:"13px"}}>{t.count}</span>}
+        </button>)}
+      </div>
     </div>
     <div style={{flex:1,overflowY:"auto"}}>
-      <div style={{maxWidth:760,margin:"0 auto",padding:20}}>
+      <div style={{maxWidth:760,margin:"0 auto",padding:16}}>
         {tab==="dashboard"&&<Dashboard data={data}/>}
         {tab==="agenda"&&<Agenda data={data} setData={setData}/>}
         {tab==="taches"&&<Taches data={data} setData={setData}/>}
