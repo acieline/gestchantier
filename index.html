@@ -797,12 +797,8 @@ function Login({ onLogin }) {
     const saved = localStorage.getItem(REMEMBER_KEY);
     if (saved) { setEmail(saved); setRemember(true); }
     setBioEnabled(localStorage.getItem(BIOMETRIC_ENABLED_KEY) === "1");
-    // DEBUG TEMPORAIRE — à retirer une fois le problème identifié
-    const capExists = typeof window.Capacitor !== "undefined";
-    const pluginsKeys = capExists && window.Capacitor.Plugins ? Object.keys(window.Capacitor.Plugins).join(", ") : "aucun";
-    alert("DEBUG\nCapacitor présent : " + capExists + "\nisNativePlatform : " + (capExists && window.Capacitor.isNativePlatform ? window.Capacitor.isNativePlatform() : "?") + "\nPlugins : " + pluginsKeys + "\nBiometric objet trouvé : " + !!Biometric);
     if (Biometric) {
-      Biometric.isAvailable().then(r => { alert("isAvailable résultat : " + JSON.stringify(r)); setBioAvailable(!!(r && r.isAvailable)); }).catch(e => { alert("isAvailable erreur : " + e.message); setBioAvailable(false); });
+      Biometric.isAvailable().then(r => setBioAvailable(!!(r && r.isAvailable))).catch(() => setBioAvailable(false));
     }
   }, []);
 
