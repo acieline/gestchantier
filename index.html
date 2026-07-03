@@ -776,14 +776,48 @@ function PageAbonnement({ session, statut, onRefresh, onLogout }) {
   );
 }
 
+// ── BIOMÉTRIE (Face ID / Touch ID / empreinte Android) ────────────────────────
+// Accès direct au plugin natif via le pont Capacitor, sans import npm (pas de bundler ici).
+const Biometric = (typeof window !== "undefined" && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.NativeBiometric) || null;
+const BIOMETRIC_SERVER = "gestchantier.app";
+const REMEMBER_KEY = "gc_remember_email";
+const BIOMETRIC_ENABLED_KEY = "gc_biometric_enabled";
+
 function Login({ onLogin }) {
   const [mode, setMode] = useState("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [remember, setRemember] = useState(false);
+  const [bioAvailable, setBioAvailable] = useState(false);
+  const [bioEnabled, setBioEnabled] = useState(false);
+
+  useEffect(() => {
+    const saved = localStorage.getItem(REMEMBER_KEY);
+    if (saved) { setEmail(saved); setRemember(true); }
+    setBioEnabled(localStorage.getItem(BIOMETRIC_ENABLED_KEY) === "1");
+    // DEBUG TEMPORAIRE — à retirer une fois le problème identifié
+    const capExists = typeof window.Capacitor !== "undefined";
+    const pluginsKeys = capExists && window.Capacitor.Plugins ? Object.keys(window.Capacitor.Plugins).join(", ") : "aucun";
+    alert("DEBUG\nCapacitor présent : " + capExists + "\nisNativePlatform : " + (capExists && window.Capacitor.isNativePlatform ? window.Capacitor.isNativePlatform() : "?") + "\nPlugins : " + pluginsKeys + "\nBiometric objet trouvé : " + !!Biometric);
+    if (Biometric) {
+      Biometric.isAvailable().then(r => { alert("isAvailable résultat : " + JSON.stringify(r)); setBioAvailable(!!(r && r.isAvailable)); }).catch(e => { alert("isAvailable erreur : " + e.message); setBioAvailable(false); });
+    }
+  }, []);
 
   const s2 = {width:"100%",padding:"12px 14px",borderRadius:10,border:`1px solid ${COLORS.line}`,fontSize:15,color:COLORS.ink,boxSizing:"border-box",outline:"none",marginBottom:12,fontFamily:FONT_BODY};
+
+  const proposerBiometrie = async (loggedEmail, loggedPassword) => {
+    if (!Biometric || !bioAvailable || bioEnabled) return;
+    const ok = window.confirm("Activer la connexion par Face ID / empreinte pour la prochaine fois ?");
+    if (!ok) return;
+    try {
+      await Biometric.setCredentials({ username: loggedEmail, password: loggedPassword, server: BIOMETRIC_SERVER });
+      localStorage.setItem(BIOMETRIC_ENABLED_KEY, "1");
+      setBioEnabled(true);
+    } catch (e) { /* annulé ou non supporté, on ignore silencieusement */ }
+  };
 
   const handleAuth = async () => {
     if (mode === "reset") {
@@ -816,6 +850,8 @@ function Login({ onLogin }) {
       } else {
         const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
         if (error) throw error;
+        if (remember) localStorage.setItem(REMEMBER_KEY, email); else localStorage.removeItem(REMEMBER_KEY);
+        await proposerBiometrie(email, password);
         onLogin(data.user);
       }
     } catch (e) {
@@ -824,6 +860,22 @@ function Login({ onLogin }) {
       else if (msg.includes("already registered")) setMessage("Erreur : cet email est déjà inscrit");
       else if (msg.includes("Email not confirmed")) setMessage("Confirme d'abord ton email (vérifie ta boîte)");
       else setMessage("Erreur : " + msg);
+    }
+    setLoading(false);
+  };
+
+  const loginBiometrique = async () => {
+    if (!Biometric) return;
+    setLoading(true);
+    setMessage("");
+    try {
+      await Biometric.verifyIdentity({ reason: "Connexion à Gest'Chantier", title: "Authentification", subtitle: "", description: "" });
+      const creds = await Biometric.getCredentials({ server: BIOMETRIC_SERVER });
+      const { data, error } = await supabaseClient.auth.signInWithPassword({ email: creds.username, password: creds.password });
+      if (error) throw error;
+      onLogin(data.user);
+    } catch (e) {
+      setMessage("Erreur : authentification biométrique annulée ou échouée");
     }
     setLoading(false);
   };
@@ -838,6 +890,17 @@ function Login({ onLogin }) {
           <div style={{fontWeight:700,fontSize:24,color:COLORS.ink,fontFamily:FONT_DISPLAY}}>Gest'Chantier</div>
           <div style={{color:COLORS.inkSoft,fontSize:14,marginTop:4}}>Gestion pour artisans & BTP</div>
         </div>
+
+        {mode === "login" && bioAvailable && bioEnabled && <>
+          <button onClick={loginBiometrique} disabled={loading} style={{width:"100%",padding:"12px",borderRadius:10,border:`1.5px solid ${COLORS.ink}`,background:"#fff",color:COLORS.ink,fontWeight:700,fontSize:14,cursor:loading?"default":"pointer",fontFamily:FONT_BODY,marginBottom:16,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+            <Icon name="check" size={16} color={COLORS.ink}/>Se connecter avec Face ID
+          </button>
+          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
+            <div style={{flex:1,height:1,background:COLORS.line}}/>
+            <span style={{fontSize:11,color:COLORS.inkSoft,textTransform:"uppercase",letterSpacing:0.4}}>ou</span>
+            <div style={{flex:1,height:1,background:COLORS.line}}/>
+          </div>
+        </>}
 
         {mode !== "reset" && <div style={{display:"flex",gap:8,marginBottom:24,background:COLORS.lineSoft,borderRadius:10,padding:4}}>
           <button onClick={()=>{setMode("login");setMessage("");}} style={{flex:1,padding:"10px",borderRadius:8,border:"none",background:mode==="login"?COLORS.ink:"transparent",color:mode==="login"?"#fff":COLORS.inkSoft,fontWeight:600,fontSize:14,cursor:"pointer",fontFamily:FONT_BODY}}>Connexion</button>
@@ -855,6 +918,11 @@ function Login({ onLogin }) {
           <label style={{display:"block",fontSize:11.5,fontWeight:700,color:COLORS.inkSoft,marginBottom:4,textTransform:"uppercase"}}>Mot de passe</label>
           <input style={s2} type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="••••••••" onKeyDown={e=>e.key==="Enter"&&handleAuth()}/>
         </>}
+
+        {mode === "login" && <label style={{display:"flex",alignItems:"center",gap:8,marginBottom:16,cursor:"pointer",fontSize:13,color:COLORS.inkSoft}}>
+          <input type="checkbox" checked={remember} onChange={e=>setRemember(e.target.checked)} style={{width:16,height:16,cursor:"pointer",accentColor:COLORS.accent}}/>
+          Se souvenir de mon identifiant
+        </label>}
 
         {message && <div style={{padding:"10px 14px",borderRadius:8,background:isOk?COLORS.successBg:COLORS.dangerBg,color:isOk?COLORS.success:COLORS.danger,fontSize:13,marginBottom:12,lineHeight:1.5}}>{message.replace(/^OK /,"")}</div>}
 
