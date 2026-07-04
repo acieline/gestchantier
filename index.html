@@ -86,7 +86,8 @@ const btnS={background:COLORS.surface,color:COLORS.inkSoft,border:`1px solid ${C
 const btnD={background:COLORS.dangerBg,color:COLORS.danger,border:"none",borderRadius:8,padding:"6px 12px",fontWeight:600,fontSize:12.5,cursor:"pointer",fontFamily:FONT_BODY};
 const btnG={background:COLORS.successBg,color:COLORS.success,border:`1px solid ${COLORS.success}30`,borderRadius:8,padding:"7px 12px",fontWeight:600,fontSize:12.5,cursor:"pointer",fontFamily:FONT_BODY};
 
-const calcTotaux=(lignes)=>{const ht=(lignes||[]).reduce((s,l)=>s+(Number(l.qte)||0)*(Number(l.pu)||0),0);return{ht,tva:ht*TVA,ttc:ht*(1+TVA)};};
+const calcTotaux=(lignes,tauxTva)=>{const t=(tauxTva===undefined||tauxTva===null)?20:Number(tauxTva);const ht=(lignes||[]).reduce((s,l)=>s+(Number(l.qte)||0)*(Number(l.pu)||0),0);return{ht,tva:ht*(t/100),ttc:ht*(1+t/100),taux:t};};
+const TAUX_TVA_OPTIONS=[2.1,5.5,10,20];
 
 // ── ICÔNES ────────────────────────────────────────────────────────────────────
 function Icon({name,size=17,color="currentColor",style}){
@@ -135,7 +136,7 @@ function IR({label,children}){return <div style={{marginBottom:12}}><label style
 
 // ── APERÇU DOCUMENT ───────────────────────────────────────────────────────────
 function ApercuDoc({doc,type,entreprise,onClose}){
-  const {ht,tva,ttc}=calcTotaux(doc.lignes);
+  const {ht,tva,ttc,taux}=calcTotaux(doc.lignes,doc.tauxTva);
   const imprimer=()=>{
     const w=window.open('','_blank');
     w.document.write(`<html><head><title>${doc.numero}</title><style>
@@ -172,7 +173,7 @@ function ApercuDoc({doc,type,entreprise,onClose}){
       <tbody>${(doc.lignes||[]).map((l,i)=>`<tr><td>${l.desc}</td><td style="text-align:center">${l.qte}</td><td style="text-align:right">${Number(l.pu).toLocaleString("fr-FR")} €</td><td style="text-align:right;font-weight:600">${(Number(l.qte)*Number(l.pu)).toLocaleString("fr-FR")} €</td></tr>`).join("")}</tbody></table>
       <div class="totaux">
         <div class="tl"><span>Total HT</span><span style="font-weight:600">${ht.toLocaleString("fr-FR",{minimumFractionDigits:2})} €</span></div>
-        <div class="tl"><span>TVA 20%</span><span style="font-weight:600">${tva.toLocaleString("fr-FR",{minimumFractionDigits:2})} €</span></div>
+        <div class="tl"><span>TVA ${taux}%</span><span style="font-weight:600">${tva.toLocaleString("fr-FR",{minimumFractionDigits:2})} €</span></div>
         <div class="tl ttc"><span>TOTAL TTC</span><span>${ttc.toLocaleString("fr-FR",{minimumFractionDigits:2})} €</span></div>
       </div>
       ${doc.notes?`<div style="margin-top:24px;padding:12px 16px;background:${COLORS.pendingBg};border-radius:8px;font-size:13px;border-left:3px solid ${COLORS.pending}"><strong>Notes :</strong> ${doc.notes}</div>`:""}
@@ -226,7 +227,7 @@ function ApercuDoc({doc,type,entreprise,onClose}){
       <div style={{display:"flex",justifyContent:"flex-end"}}>
         <div style={{minWidth:240}}>
           <div style={{display:"flex",justifyContent:"space-between",padding:"5px 10px",fontSize:13,color:COLORS.inkSoft}}><span>Total HT</span><span style={{fontWeight:600,fontFamily:FONT_MONO}}>{ht.toLocaleString("fr-FR",{minimumFractionDigits:2})} €</span></div>
-          <div style={{display:"flex",justifyContent:"space-between",padding:"5px 10px",fontSize:13,color:COLORS.inkSoft}}><span>TVA 20%</span><span style={{fontWeight:600,fontFamily:FONT_MONO}}>{tva.toLocaleString("fr-FR",{minimumFractionDigits:2})} €</span></div>
+          <div style={{display:"flex",justifyContent:"space-between",padding:"5px 10px",fontSize:13,color:COLORS.inkSoft}}><span>TVA {taux}%</span><span style={{fontWeight:600,fontFamily:FONT_MONO}}>{tva.toLocaleString("fr-FR",{minimumFractionDigits:2})} €</span></div>
           <div style={{display:"flex",justifyContent:"space-between",padding:"10px 10px",fontSize:17,fontWeight:800,color:COLORS.accent,borderTop:`2px solid ${COLORS.accent}`,marginTop:6,fontFamily:FONT_MONO}}><span>TOTAL TTC</span><span>{ttc.toLocaleString("fr-FR",{minimumFractionDigits:2})} €</span></div>
         </div>
       </div>
@@ -236,26 +237,40 @@ function ApercuDoc({doc,type,entreprise,onClose}){
 }
 
 // ── LIGNES EDITOR ─────────────────────────────────────────────────────────────
-function LignesEditor({lignes,setLignes}){
+function LignesEditor({lignes,setLignes,tauxTva,setTauxTva}){
+  const [descEdit,setDescEdit]=useState(null);
+  const [descTemp,setDescTemp]=useState("");
   const add=()=>setLignes([...lignes,{desc:"",qte:1,pu:0}]);
   const upd=(i,f,v)=>{const l=[...lignes];l[i]={...l[i],[f]:v};setLignes(l);};
   const del=(i)=>setLignes(lignes.filter((_,idx)=>idx!==i));
-  const {ht,tva,ttc}=calcTotaux(lignes);
+  const {ht,tva,ttc}=calcTotaux(lignes,tauxTva);
+  const openDesc=(i)=>{setDescTemp(lignes[i].desc||"");setDescEdit(i);};
+  const saveDesc=()=>{upd(descEdit,"desc",descTemp);setDescEdit(null);};
   return <div>
     <div style={{fontSize:11,fontWeight:700,color:COLORS.inkSoft,marginBottom:8,letterSpacing:0.4,textTransform:"uppercase"}}>Prestations</div>
     {lignes.map((l,i)=><div key={i} style={{display:"flex",gap:6,alignItems:"center",marginBottom:8}}>
-      <input style={{...inp,flex:3}} placeholder="Description" value={l.desc} onChange={e=>upd(i,"desc",e.target.value)}/>
-      <input style={{...inp,width:60,flex:"none"}} type="number" placeholder="Qté" value={l.qte} onChange={e=>upd(i,"qte",e.target.value)}/>
-      <input style={{...inp,width:80,flex:"none"}} type="number" placeholder="P.U.€" value={l.pu} onChange={e=>upd(i,"pu",e.target.value)}/>
-      <span style={{fontSize:13,fontWeight:700,color:COLORS.blueprint,minWidth:70,textAlign:"right",fontFamily:FONT_MONO}}>{((Number(l.qte)||0)*(Number(l.pu)||0)).toLocaleString("fr-FR")} €</span>
+      <button type="button" onClick={()=>openDesc(i)} style={{...inp,flex:3,textAlign:"left",background:"#fff",cursor:"pointer",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",color:l.desc?COLORS.ink:COLORS.inkSoft}}>{l.desc||"Description…"}</button>
+      <input style={{...inp,width:55,flex:"none"}} type="number" placeholder="Qté" value={l.qte} onChange={e=>upd(i,"qte",e.target.value)}/>
+      <input style={{...inp,width:75,flex:"none"}} type="number" placeholder="P.U.€" value={l.pu} onChange={e=>upd(i,"pu",e.target.value)}/>
+      <span style={{fontSize:13,fontWeight:700,color:COLORS.blueprint,minWidth:65,textAlign:"right",fontFamily:FONT_MONO}}>{((Number(l.qte)||0)*(Number(l.pu)||0)).toLocaleString("fr-FR")} €</span>
       <button onClick={()=>del(i)} style={{background:"none",border:"none",cursor:"pointer",color:COLORS.danger,fontSize:18}}>×</button>
     </div>)}
     <button onClick={add} style={{...btnS,marginBottom:12}}>+ Ligne</button>
+    <div style={{marginBottom:12,maxWidth:160}}>
+      <label style={{display:"block",fontSize:11.5,fontWeight:600,color:COLORS.inkSoft,marginBottom:4}}>Taux de TVA</label>
+      <select style={inp} value={tauxTva} onChange={e=>setTauxTva(Number(e.target.value))}>
+        {TAUX_TVA_OPTIONS.map(t=><option key={t} value={t}>{t}%</option>)}
+      </select>
+    </div>
     <div style={{background:COLORS.lineSoft,borderRadius:10,padding:"10px 14px"}}>
       <div style={{display:"flex",justifyContent:"space-between",fontSize:13,color:COLORS.inkSoft,marginBottom:3}}><span>HT</span><span style={{fontWeight:600,fontFamily:FONT_MONO}}>{ht.toLocaleString("fr-FR",{minimumFractionDigits:2})} €</span></div>
-      <div style={{display:"flex",justifyContent:"space-between",fontSize:13,color:COLORS.inkSoft,marginBottom:3}}><span>TVA 20%</span><span style={{fontWeight:600,fontFamily:FONT_MONO}}>{tva.toLocaleString("fr-FR",{minimumFractionDigits:2})} €</span></div>
+      <div style={{display:"flex",justifyContent:"space-between",fontSize:13,color:COLORS.inkSoft,marginBottom:3}}><span>TVA {tauxTva}%</span><span style={{fontWeight:600,fontFamily:FONT_MONO}}>{tva.toLocaleString("fr-FR",{minimumFractionDigits:2})} €</span></div>
       <div style={{display:"flex",justifyContent:"space-between",fontSize:16,fontWeight:800,color:COLORS.accent,borderTop:`2px solid ${COLORS.accent}`,paddingTop:8,marginTop:4,fontFamily:FONT_MONO}}><span>TTC</span><span>{ttc.toLocaleString("fr-FR",{minimumFractionDigits:2})} €</span></div>
     </div>
+    {descEdit!==null&&<Modal title="Description de la ligne" onClose={()=>setDescEdit(null)}>
+      <textarea autoFocus style={{...inp,minHeight:130,resize:"vertical"}} value={descTemp} onChange={e=>setDescTemp(e.target.value)} placeholder="Décrivez la prestation…"/>
+      <div style={{display:"flex",gap:10,marginTop:12}}><button style={btnP} onClick={saveDesc}>Valider</button><button style={btnS} onClick={()=>setDescEdit(null)}>Annuler</button></div>
+    </Modal>}
   </div>;
 }
 
@@ -439,13 +454,13 @@ function Devis({data,api}){
   const [showForm,setShowForm]=useState(false);
   const [apercu,setApercu]=useState(null);
   const [editing,setEditing]=useState(null);
-  const [form,setForm]=useState({client:"",adresseClient:"",travaux:"",lignes:[{desc:"",qte:1,pu:0}],statut:"a_faire",echeance:"",notes:""});
+  const [form,setForm]=useState({client:"",adresseClient:"",travaux:"",lignes:[{desc:"",qte:1,pu:0}],tauxTva:20,statut:"a_faire",echeance:"",notes:""});
   const [editForm,setEditForm]=useState(null);
   const nextNum=()=>`DEV-${new Date().getFullYear()}-${(data.devis.length+1).toString().padStart(3,"0")}`;
-  const add=()=>{if(!form.client.trim())return;api.ajouterItem("devis",{...form,numero:nextNum()});setForm({client:"",adresseClient:"",travaux:"",lignes:[{desc:"",qte:1,pu:0}],statut:"a_faire",echeance:"",notes:""});setShowForm(false);};
+  const add=()=>{if(!form.client.trim())return;api.ajouterItem("devis",{...form,numero:nextNum()});setForm({client:"",adresseClient:"",travaux:"",lignes:[{desc:"",qte:1,pu:0}],tauxTva:20,statut:"a_faire",echeance:"",notes:""});setShowForm(false);};
   const del=(id)=>{if(window.confirm("Supprimer ce devis ?"))api.supprimerItem("devis",id);};
   const updStatut=(id,statut)=>api.modifierItem("devis",id,{statut});
-  const openEdit=(d)=>{setEditForm({client:d.client||"",adresseClient:d.adresseClient||"",travaux:d.travaux||"",lignes:(d.lignes||[{desc:"",qte:1,pu:0}]).map(l=>({...l})),statut:d.statut,echeance:d.echeance||"",notes:d.notes||""});setEditing(d);};
+  const openEdit=(d)=>{setEditForm({client:d.client||"",adresseClient:d.adresseClient||"",travaux:d.travaux||"",lignes:(d.lignes||[{desc:"",qte:1,pu:0}]).map(l=>({...l})),tauxTva:d.tauxTva||20,statut:d.statut,echeance:d.echeance||"",notes:d.notes||""});setEditing(d);};
   const saveEdit=()=>{if(!editForm.client.trim())return;api.modifierItem("devis",editing.id,editForm);setEditing(null);setEditForm(null);};
   const convertir=(dv)=>{
     const num=`FAC-${new Date().getFullYear()}-${(data.factures.length+1).toString().padStart(3,"0")}`;
@@ -454,14 +469,14 @@ function Devis({data,api}){
     api.modifierItem("devis",dv.id,{statut:"accepte"});
     alert(`Facture ${num} créée !`);
   };
-  const totalTTC=data.devis.filter(d=>d.statut==="accepte").reduce((s,d)=>s+calcTotaux(d.lignes).ttc,0);
+  const totalTTC=data.devis.filter(d=>d.statut==="accepte").reduce((s,d)=>s+calcTotaux(d.lignes,d.tauxTva).ttc,0);
   return <div style={{fontFamily:FONT_BODY}}>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
       <div><span style={{fontWeight:700,fontSize:19,color:COLORS.ink,fontFamily:FONT_DISPLAY}}>Devis</span><span style={{marginLeft:10,background:COLORS.successBg,color:COLORS.success,borderRadius:20,padding:"2px 12px",fontSize:12.5,fontWeight:600,fontFamily:FONT_MONO}}>{totalTTC.toLocaleString("fr-FR",{maximumFractionDigits:0})} € TTC signés</span></div>
       <button style={btnP} onClick={()=>setShowForm(true)}><Icon name="plus" size={13} style={{marginRight:5,verticalAlign:-2}}/>Nouveau devis</button>
     </div>
     <div style={{display:"flex",flexDirection:"column",gap:10}}>
-      {data.devis.map(d=>{const {ttc,ht}=calcTotaux(d.lignes);return <div key={d.id} style={{background:"#fff",border:`1px solid ${COLORS.line}`,borderRadius:14,padding:15}}>
+      {data.devis.map(d=>{const {ttc,ht}=calcTotaux(d.lignes,d.tauxTva);return <div key={d.id} style={{background:"#fff",border:`1px solid ${COLORS.line}`,borderRadius:14,padding:15}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
           <div style={{cursor:"pointer"}} onClick={()=>openEdit(d)}><div style={{fontSize:11,color:COLORS.inkSoft,fontWeight:600,fontFamily:FONT_MONO}}>{d.numero}</div><div style={{fontWeight:700,color:COLORS.ink,fontSize:14.5,marginTop:2}}>{d.client}</div><div style={{color:COLORS.inkSoft,fontSize:12.5,marginTop:2}}>{d.travaux}</div></div>
           <div style={{textAlign:"right"}}><div style={{fontWeight:800,fontSize:16,color:COLORS.blueprint,fontFamily:FONT_MONO}}>{ttc.toLocaleString("fr-FR",{maximumFractionDigits:0})} € TTC</div><div style={{fontSize:10.5,color:COLORS.inkSoft,fontFamily:FONT_MONO}}>HT {ht.toLocaleString("fr-FR",{maximumFractionDigits:0})} €</div></div>
@@ -488,7 +503,7 @@ function Devis({data,api}){
         <IR label="Statut"><select style={inp} value={form.statut} onChange={e=>setForm(f=>({...f,statut:e.target.value}))}>{Object.entries(STATUT_DEVIS).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}</select></IR>
         <IR label="Date limite"><input type="date" style={inp} value={form.echeance} onChange={e=>setForm(f=>({...f,echeance:e.target.value}))}/></IR>
       </div>
-      <div style={{marginBottom:12}}><LignesEditor lignes={form.lignes} setLignes={l=>setForm(f=>({...f,lignes:l}))}/></div>
+      <div style={{marginBottom:12}}><LignesEditor lignes={form.lignes} setLignes={l=>setForm(f=>({...f,lignes:l}))} tauxTva={form.tauxTva} setTauxTva={t=>setForm(f=>({...f,tauxTva:t}))}/></div>
       <IR label="Notes"><input style={inp} value={form.notes} onChange={e=>setForm(f=>({...f,notes:e.target.value}))} placeholder="Conditions, remarques…"/></IR>
       <div style={{display:"flex",gap:10,marginTop:8}}><button style={btnP} onClick={add}>Créer le devis</button><button style={btnS} onClick={()=>setShowForm(false)}>Annuler</button></div>
     </Modal>}
@@ -502,7 +517,7 @@ function Devis({data,api}){
         <IR label="Statut"><select style={inp} value={editForm.statut} onChange={e=>setEditForm(f=>({...f,statut:e.target.value}))}>{Object.entries(STATUT_DEVIS).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}</select></IR>
         <IR label="Date limite"><input type="date" style={inp} value={editForm.echeance} onChange={e=>setEditForm(f=>({...f,echeance:e.target.value}))}/></IR>
       </div>
-      <div style={{marginBottom:12}}><LignesEditor lignes={editForm.lignes} setLignes={l=>setEditForm(f=>({...f,lignes:l}))}/></div>
+      <div style={{marginBottom:12}}><LignesEditor lignes={editForm.lignes} setLignes={l=>setEditForm(f=>({...f,lignes:l}))} tauxTva={editForm.tauxTva} setTauxTva={t=>setEditForm(f=>({...f,tauxTva:t}))}/></div>
       <IR label="Notes"><input style={inp} value={editForm.notes} onChange={e=>setEditForm(f=>({...f,notes:e.target.value}))} placeholder="Conditions, remarques…"/></IR>
       <div style={{display:"flex",gap:10,marginTop:8}}><button style={btnP} onClick={saveEdit}>Enregistrer</button><button style={btnS} onClick={()=>{setEditing(null);setEditForm(null);}}>Annuler</button></div>
     </Modal>}
@@ -514,13 +529,13 @@ function Devis({data,api}){
 function Factures({data,api}){
   const [showForm,setShowForm]=useState(false);
   const [apercu,setApercu]=useState(null);
-  const [form,setForm]=useState({client:"",adresseClient:"",travaux:"",lignes:[{desc:"",qte:1,pu:0}],statut:"envoyee",dateEmission:TODAY,dateEcheance:"",notes:""});
+  const [form,setForm]=useState({client:"",adresseClient:"",travaux:"",lignes:[{desc:"",qte:1,pu:0}],tauxTva:20,statut:"envoyee",dateEmission:TODAY,dateEcheance:"",notes:""});
   const nextNum=()=>`FAC-${new Date().getFullYear()}-${(data.factures.length+1).toString().padStart(3,"0")}`;
-  const add=()=>{if(!form.client.trim())return;api.ajouterItem("factures",{...form,numero:nextNum()});setForm({client:"",adresseClient:"",travaux:"",lignes:[{desc:"",qte:1,pu:0}],statut:"envoyee",dateEmission:TODAY,dateEcheance:"",notes:""});setShowForm(false);};
+  const add=()=>{if(!form.client.trim())return;api.ajouterItem("factures",{...form,numero:nextNum()});setForm({client:"",adresseClient:"",travaux:"",lignes:[{desc:"",qte:1,pu:0}],tauxTva:20,statut:"envoyee",dateEmission:TODAY,dateEcheance:"",notes:""});setShowForm(false);};
   const del=(id)=>api.supprimerItem("factures",id);
   const updStatut=(id,statut)=>api.modifierItem("factures",id,{statut});
-  const totalPaye=data.factures.filter(f=>f.statut==="payee").reduce((s,f)=>s+calcTotaux(f.lignes).ttc,0);
-  const totalAttente=data.factures.filter(f=>f.statut!=="payee").reduce((s,f)=>s+calcTotaux(f.lignes).ttc,0);
+  const totalPaye=data.factures.filter(f=>f.statut==="payee").reduce((s,f)=>s+calcTotaux(f.lignes,f.tauxTva).ttc,0);
+  const totalAttente=data.factures.filter(f=>f.statut!=="payee").reduce((s,f)=>s+calcTotaux(f.lignes,f.tauxTva).ttc,0);
   return <div style={{fontFamily:FONT_BODY}}>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
       <span style={{fontWeight:700,fontSize:19,color:COLORS.ink,fontFamily:FONT_DISPLAY}}>Factures</span>
@@ -537,7 +552,7 @@ function Factures({data,api}){
       </div>
     </div>
     <div style={{display:"flex",flexDirection:"column",gap:10}}>
-      {data.factures.map(f=>{const {ttc}=calcTotaux(f.lignes);return <div key={f.id} style={{background:"#fff",border:`1px solid ${COLORS.line}`,borderRadius:14,padding:15}}>
+      {data.factures.map(f=>{const {ttc}=calcTotaux(f.lignes,f.tauxTva);return <div key={f.id} style={{background:"#fff",border:`1px solid ${COLORS.line}`,borderRadius:14,padding:15}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
           <div><div style={{fontSize:11,color:COLORS.inkSoft,fontWeight:600,fontFamily:FONT_MONO}}>{f.numero}</div><div style={{fontWeight:700,color:COLORS.ink,fontSize:14.5,marginTop:2}}>{f.client}</div><div style={{color:COLORS.inkSoft,fontSize:12.5,marginTop:2}}>{f.travaux}</div></div>
           <div style={{fontWeight:800,fontSize:16,color:COLORS.blueprint,fontFamily:FONT_MONO}}>{ttc.toLocaleString("fr-FR",{maximumFractionDigits:0})} € TTC</div>
@@ -565,7 +580,7 @@ function Factures({data,api}){
         <IR label="Date émission"><input type="date" style={inp} value={form.dateEmission} onChange={e=>setForm(f=>({...f,dateEmission:e.target.value}))}/></IR>
         <IR label="Date échéance"><input type="date" style={inp} value={form.dateEcheance} onChange={e=>setForm(f=>({...f,dateEcheance:e.target.value}))}/></IR>
       </div>
-      <div style={{marginBottom:12}}><LignesEditor lignes={form.lignes} setLignes={l=>setForm(f=>({...f,lignes:l}))}/></div>
+      <div style={{marginBottom:12}}><LignesEditor lignes={form.lignes} setLignes={l=>setForm(f=>({...f,lignes:l}))} tauxTva={form.tauxTva} setTauxTva={t=>setForm(f=>({...f,tauxTva:t}))}/></div>
       <IR label="Notes"><input style={inp} value={form.notes} onChange={e=>setForm(f=>({...f,notes:e.target.value}))} placeholder="Conditions de paiement…"/></IR>
       <div style={{display:"flex",gap:10,marginTop:8}}><button style={btnP} onClick={add}>Créer la facture</button><button style={btnS} onClick={()=>setShowForm(false)}>Annuler</button></div>
     </Modal>}
@@ -575,8 +590,8 @@ function Factures({data,api}){
 
 // ── DASHBOARD ─────────────────────────────────────────────────────────────────
 function Dashboard({data}){
-  const ca=data.factures.filter(f=>f.statut==="payee").reduce((s,f)=>s+calcTotaux(f.lignes).ttc,0);
-  const enAtt=data.factures.filter(f=>f.statut!=="payee").reduce((s,f)=>s+calcTotaux(f.lignes).ttc,0);
+  const ca=data.factures.filter(f=>f.statut==="payee").reduce((s,f)=>s+calcTotaux(f.lignes,f.tauxTva).ttc,0);
+  const enAtt=data.factures.filter(f=>f.statut!=="payee").reduce((s,f)=>s+calcTotaux(f.lignes,f.tauxTva).ttc,0);
   const rdvAuj=data.rdv.filter(r=>r.date===TODAY);
   const urgent=data.taches.filter(t=>!t.fait&&t.priorite==="haute");
   const Stat=({icon,label,value,color})=><div style={{background:"#fff",border:`1px solid ${COLORS.line}`,borderRadius:12,padding:"11px 12px",borderTop:`3px solid ${color}`}}>
@@ -634,7 +649,7 @@ function Clients({data,api}){
         const facturesClient=(data.factures||[]).filter(f=>f.client===c.nom);
         const devisClient=(data.devis||[]).filter(d=>d.client===c.nom);
         const chantiersClient=(data.chantiers||[]).filter(ch=>ch.client===c.nom);
-        const ca=facturesClient.filter(f=>f.statut==="payee").reduce((s,f)=>s+calcTotaux(f.lignes).ttc,0);
+        const ca=facturesClient.filter(f=>f.statut==="payee").reduce((s,f)=>s+calcTotaux(f.lignes,f.tauxTva).ttc,0);
         return <div key={c.id} style={{background:"#fff",border:`1px solid ${COLORS.line}`,borderRadius:14,padding:15,cursor:"pointer"}} onClick={()=>setSel(sel&&sel.id===c.id?null:c)}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
             <div>
@@ -1051,6 +1066,7 @@ const versDB = (item, table) => {
   if (o.dateEmission !== undefined) { o.date_emission = o.dateEmission || null; delete o.dateEmission; }
   if (o.dateEcheance !== undefined) { o.date_echeance = o.dateEcheance || null; delete o.dateEcheance; }
   if (o.adresseClient !== undefined) { o.adresse_client = o.adresseClient; delete o.adresseClient; }
+  if (o.tauxTva !== undefined) { o.taux_tva = o.tauxTva; delete o.tauxTva; }
   ["echeance","debut","fin","date"].forEach(k => { if (o[k] === "") o[k] = null; });
   return o;
 };
@@ -1059,6 +1075,7 @@ const depuisDB = (row) => {
   if (o.date_emission !== undefined) { o.dateEmission = o.date_emission; delete o.date_emission; }
   if (o.date_echeance !== undefined) { o.dateEcheance = o.date_echeance; delete o.date_echeance; }
   if (o.adresse_client !== undefined) { o.adresseClient = o.adresse_client; delete o.adresse_client; }
+  if (o.taux_tva !== undefined) { o.tauxTva = o.taux_tva; delete o.taux_tva; }
   return o;
 };
 
