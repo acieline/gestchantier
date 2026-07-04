@@ -438,11 +438,15 @@ function Chantiers({data,api}){
 function Devis({data,api}){
   const [showForm,setShowForm]=useState(false);
   const [apercu,setApercu]=useState(null);
+  const [editing,setEditing]=useState(null);
   const [form,setForm]=useState({client:"",adresseClient:"",travaux:"",lignes:[{desc:"",qte:1,pu:0}],statut:"a_faire",echeance:"",notes:""});
+  const [editForm,setEditForm]=useState(null);
   const nextNum=()=>`DEV-${new Date().getFullYear()}-${(data.devis.length+1).toString().padStart(3,"0")}`;
   const add=()=>{if(!form.client.trim())return;api.ajouterItem("devis",{...form,numero:nextNum()});setForm({client:"",adresseClient:"",travaux:"",lignes:[{desc:"",qte:1,pu:0}],statut:"a_faire",echeance:"",notes:""});setShowForm(false);};
-  const del=(id)=>api.supprimerItem("devis",id);
+  const del=(id)=>{if(window.confirm("Supprimer ce devis ?"))api.supprimerItem("devis",id);};
   const updStatut=(id,statut)=>api.modifierItem("devis",id,{statut});
+  const openEdit=(d)=>{setEditForm({client:d.client||"",adresseClient:d.adresseClient||"",travaux:d.travaux||"",lignes:(d.lignes||[{desc:"",qte:1,pu:0}]).map(l=>({...l})),statut:d.statut,echeance:d.echeance||"",notes:d.notes||""});setEditing(d);};
+  const saveEdit=()=>{if(!editForm.client.trim())return;api.modifierItem("devis",editing.id,editForm);setEditing(null);setEditForm(null);};
   const convertir=(dv)=>{
     const num=`FAC-${new Date().getFullYear()}-${(data.factures.length+1).toString().padStart(3,"0")}`;
     const {id,...sansId}=dv;
@@ -459,13 +463,14 @@ function Devis({data,api}){
     <div style={{display:"flex",flexDirection:"column",gap:10}}>
       {data.devis.map(d=>{const {ttc,ht}=calcTotaux(d.lignes);return <div key={d.id} style={{background:"#fff",border:`1px solid ${COLORS.line}`,borderRadius:14,padding:15}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-          <div><div style={{fontSize:11,color:COLORS.inkSoft,fontWeight:600,fontFamily:FONT_MONO}}>{d.numero}</div><div style={{fontWeight:700,color:COLORS.ink,fontSize:14.5,marginTop:2}}>{d.client}</div><div style={{color:COLORS.inkSoft,fontSize:12.5,marginTop:2}}>{d.travaux}</div></div>
+          <div style={{cursor:"pointer"}} onClick={()=>openEdit(d)}><div style={{fontSize:11,color:COLORS.inkSoft,fontWeight:600,fontFamily:FONT_MONO}}>{d.numero}</div><div style={{fontWeight:700,color:COLORS.ink,fontSize:14.5,marginTop:2}}>{d.client}</div><div style={{color:COLORS.inkSoft,fontSize:12.5,marginTop:2}}>{d.travaux}</div></div>
           <div style={{textAlign:"right"}}><div style={{fontWeight:800,fontSize:16,color:COLORS.blueprint,fontFamily:FONT_MONO}}>{ttc.toLocaleString("fr-FR",{maximumFractionDigits:0})} € TTC</div><div style={{fontSize:10.5,color:COLORS.inkSoft,fontFamily:FONT_MONO}}>HT {ht.toLocaleString("fr-FR",{maximumFractionDigits:0})} €</div></div>
         </div>
         <div style={{display:"flex",alignItems:"center",gap:8,marginTop:12,flexWrap:"wrap"}}>
           <select value={d.statut} onChange={e=>updStatut(d.id,e.target.value)} style={{border:"none",background:STATUT_DEVIS[d.statut]?.bg,color:STATUT_DEVIS[d.statut]?.color,borderRadius:6,padding:"3px 8px",fontWeight:600,fontSize:11.5,cursor:"pointer",fontFamily:FONT_BODY}}>{Object.entries(STATUT_DEVIS).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}</select>
           {d.echeance&&<span style={{fontSize:11.5,color:COLORS.inkSoft,fontFamily:FONT_MONO}}>{new Date(d.echeance+"T12:00:00").toLocaleDateString("fr-FR")}</span>}
           <div style={{marginLeft:"auto",display:"flex",gap:6}}>
+            <button style={btnS} onClick={()=>openEdit(d)}>Modifier</button>
             <button style={btnS} onClick={()=>setApercu({doc:d,type:"devis"})}>Aperçu</button>
             {d.statut==="accepte"&&<button style={btnG} onClick={()=>convertir(d)}>→ Facture</button>}
             <button onClick={()=>del(d.id)} style={btnD}>Suppr.</button>
@@ -486,6 +491,20 @@ function Devis({data,api}){
       <div style={{marginBottom:12}}><LignesEditor lignes={form.lignes} setLignes={l=>setForm(f=>({...f,lignes:l}))}/></div>
       <IR label="Notes"><input style={inp} value={form.notes} onChange={e=>setForm(f=>({...f,notes:e.target.value}))} placeholder="Conditions, remarques…"/></IR>
       <div style={{display:"flex",gap:10,marginTop:8}}><button style={btnP} onClick={add}>Créer le devis</button><button style={btnS} onClick={()=>setShowForm(false)}>Annuler</button></div>
+    </Modal>}
+    {editing&&editForm&&<Modal title={`Modifier ${editing.numero}`} onClose={()=>{setEditing(null);setEditForm(null);}} wide>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+        <IR label="Client *"><input style={inp} value={editForm.client} onChange={e=>setEditForm(f=>({...f,client:e.target.value}))} placeholder="Nom du client"/></IR>
+        <IR label="Travaux"><input style={inp} value={editForm.travaux} onChange={e=>setEditForm(f=>({...f,travaux:e.target.value}))} placeholder="Ex : Rénovation salle de bain"/></IR>
+      </div>
+      <IR label="Adresse client"><input style={inp} value={editForm.adresseClient} onChange={e=>setEditForm(f=>({...f,adresseClient:e.target.value}))} placeholder="Adresse complète du client"/></IR>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+        <IR label="Statut"><select style={inp} value={editForm.statut} onChange={e=>setEditForm(f=>({...f,statut:e.target.value}))}>{Object.entries(STATUT_DEVIS).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}</select></IR>
+        <IR label="Date limite"><input type="date" style={inp} value={editForm.echeance} onChange={e=>setEditForm(f=>({...f,echeance:e.target.value}))}/></IR>
+      </div>
+      <div style={{marginBottom:12}}><LignesEditor lignes={editForm.lignes} setLignes={l=>setEditForm(f=>({...f,lignes:l}))}/></div>
+      <IR label="Notes"><input style={inp} value={editForm.notes} onChange={e=>setEditForm(f=>({...f,notes:e.target.value}))} placeholder="Conditions, remarques…"/></IR>
+      <div style={{display:"flex",gap:10,marginTop:8}}><button style={btnP} onClick={saveEdit}>Enregistrer</button><button style={btnS} onClick={()=>{setEditing(null);setEditForm(null);}}>Annuler</button></div>
     </Modal>}
     {apercu&&<ApercuDoc doc={apercu.doc} type={apercu.type} entreprise={data.entreprise} onClose={()=>setApercu(null)}/>}
   </div>;
