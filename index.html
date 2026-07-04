@@ -268,7 +268,7 @@ function LignesEditor({lignes,setLignes}){
       <button type="button" onClick={()=>openDesc(i)} style={{...inp,width:"100%",textAlign:"left",background:"#fff",cursor:"pointer",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",color:l.desc?COLORS.ink:COLORS.inkSoft,marginBottom:6}}>{l.desc||"Description…"}</button>
       <div style={{display:"flex",gap:6,alignItems:"center"}}>
         <input style={{...inp,width:48,flex:"none",padding:"8px 6px"}} type="number" placeholder="Qté" value={l.qte} onChange={e=>upd(i,"qte",e.target.value)}/>
-        <input style={{...inp,width:68,flex:"none",padding:"8px 6px"}} type="number" placeholder="P.U.€" value={l.pu} onChange={e=>upd(i,"pu",e.target.value)}/>
+        <input style={{...inp,width:68,flex:"none",padding:"8px 6px"}} type="number" placeholder="P.U.€" value={l.pu===0||l.pu===""?"":l.pu} onChange={e=>upd(i,"pu",e.target.value)}/>
         <select style={{...inp,width:62,flex:"none",padding:"8px 4px"}} value={l.tva===undefined?20:l.tva} onChange={e=>upd(i,"tva",Number(e.target.value))}>
           {TAUX_TVA_OPTIONS.map(t=><option key={t} value={t}>{t}%</option>)}
         </select>
