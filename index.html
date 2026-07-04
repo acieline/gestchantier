@@ -265,8 +265,28 @@ function Agenda({data,api}){
   const [vue,setVue]=useState("liste");
   const [moisActuel,setMoisActuel]=useState(new Date());
   const [form,setForm]=useState({titre:"",client:"",date:TODAY,heure:"09:00",duree:60,type:"chantier",notes:""});
-  const add=()=>{if(!form.titre.trim())return;api.ajouterItem("rdv",{...form,duree:Number(form.duree)});setForm({titre:"",client:"",date:TODAY,heure:"09:00",duree:60,type:"chantier",notes:""});setShowForm(false);};
-  const del=(id)=>api.supprimerItem("rdv",id);
+  const add=async()=>{
+    if(!form.titre.trim())return;
+    const nouveau = {...form,duree:Number(form.duree)};
+    const row = await api.ajouterItem("rdv",nouveau);
+    setForm({titre:"",client:"",date:TODAY,heure:"09:00",duree:60,type:"chantier",notes:""});
+    setShowForm(false);
+    if (row && CalendarPlugin && isCalendarSyncEnabled()) {
+      try {
+        const start = new Date(`${row.date}T${row.heure}:00`).getTime();
+        const end = start + (Number(row.duree)||60)*60000;
+        const evt = await CalendarPlugin.createEvent({ title: row.titre, location: row.client||"", startDate: start, endDate: end, description: row.notes||"" });
+        if (evt && evt.id) { try { await api.modifierItem("rdv", row.id, { calendar_event_id: evt.id }); } catch(e) {} }
+      } catch (e) { /* synchronisation calendrier non disponible, on ignore */ }
+    }
+  };
+  const del=async(id)=>{
+    const rdv = data.rdv.find(r=>r.id===id);
+    if (rdv && rdv.calendar_event_id && CalendarPlugin && isCalendarSyncEnabled()) {
+      try { await CalendarPlugin.deleteEvent({ id: rdv.calendar_event_id }); } catch (e) { /* déjà supprimé ou indisponible */ }
+    }
+    api.supprimerItem("rdv",id);
+  };
   const rdvTries=[...data.rdv].sort((a,b)=>(a.date+a.heure).localeCompare(b.date+b.heure));
   const rdvAvenir=rdvTries.filter(r=>r.date>=TODAY);
   const rdvPasses=rdvTries.filter(r=>r.date<TODAY);
@@ -578,9 +598,13 @@ function Dashboard({data}){
 function Clients({data,api}){
   const [showForm,setShowForm]=useState(false);
   const [sel,setSel]=useState(null);
+  const [editing,setEditing]=useState(null);
   const [form,setForm]=useState({nom:"",entreprise:"",email:"",tel:"",adresse:"",notes:""});
+  const [editForm,setEditForm]=useState({nom:"",entreprise:"",email:"",tel:"",adresse:"",notes:""});
   const add=()=>{if(!form.nom.trim())return;api.ajouterItem("clients",{...form});setForm({nom:"",entreprise:"",email:"",tel:"",adresse:"",notes:""});setShowForm(false);};
-  const del=(id)=>api.supprimerItem("clients",id);
+  const del=(id)=>{api.supprimerItem("clients",id);setSel(null);};
+  const openEdit=(c)=>{setEditForm({nom:c.nom||"",entreprise:c.entreprise||"",email:c.email||"",tel:c.tel||"",adresse:c.adresse||"",notes:c.notes||""});setEditing(c);};
+  const saveEdit=()=>{if(!editForm.nom.trim())return;api.modifierItem("clients",editing.id,editForm);setEditing(null);};
   return <div style={{fontFamily:FONT_BODY}}>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
       <div><span style={{fontWeight:700,fontSize:19,color:COLORS.ink,fontFamily:FONT_DISPLAY}}>Clients</span><span style={{marginLeft:10,background:COLORS.blueprintBg,color:COLORS.blueprint,borderRadius:20,padding:"2px 12px",fontSize:12.5,fontWeight:600}}>{(data.clients||[]).length}</span></div>
@@ -588,8 +612,10 @@ function Clients({data,api}){
     </div>
     <div style={{display:"flex",flexDirection:"column",gap:10}}>
       {(data.clients||[]).map(c=>{
-        const ca=(data.factures||[]).filter(f=>f.client===c.nom&&f.statut==="payee").reduce((s,f)=>s+calcTotaux(f.lignes).ttc,0);
-        const chans=(data.chantiers||[]).filter(ch=>ch.client===c.nom).length;
+        const facturesClient=(data.factures||[]).filter(f=>f.client===c.nom);
+        const devisClient=(data.devis||[]).filter(d=>d.client===c.nom);
+        const chantiersClient=(data.chantiers||[]).filter(ch=>ch.client===c.nom);
+        const ca=facturesClient.filter(f=>f.statut==="payee").reduce((s,f)=>s+calcTotaux(f.lignes).ttc,0);
         return <div key={c.id} style={{background:"#fff",border:`1px solid ${COLORS.line}`,borderRadius:14,padding:15,cursor:"pointer"}} onClick={()=>setSel(sel&&sel.id===c.id?null:c)}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
             <div>
@@ -602,13 +628,28 @@ function Clients({data,api}){
             </div>
             <div style={{textAlign:"right"}}>
               <div style={{fontWeight:700,color:COLORS.success,fontSize:14.5,fontFamily:FONT_MONO}}>{Number(ca).toLocaleString("fr-FR",{maximumFractionDigits:0})} €</div>
-              <div style={{fontSize:11,color:COLORS.inkSoft,marginTop:2}}>{chans} chantier(s)</div>
+              <div style={{fontSize:11,color:COLORS.inkSoft,marginTop:2}}>{chantiersClient.length} chantier(s)</div>
             </div>
           </div>
           {sel&&sel.id===c.id&&<div style={{marginTop:12,paddingTop:12,borderTop:`1px solid ${COLORS.line}`}}>
             {c.adresse&&<div style={{fontSize:12.5,color:COLORS.inkSoft,marginBottom:8}}>{c.adresse}</div>}
             {c.notes&&<div style={{fontSize:12.5,color:COLORS.ink,padding:"8px 12px",background:COLORS.lineSoft,borderRadius:8,marginBottom:10}}>{c.notes}</div>}
-            <button onClick={(e)=>{e.stopPropagation();del(c.id);}} style={btnD}>Supprimer</button>
+
+            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:12}}>
+              <div style={{background:COLORS.blueprintBg,borderRadius:10,padding:"9px 8px",textAlign:"center"}}><div style={{fontSize:16,fontWeight:800,color:COLORS.blueprint,fontFamily:FONT_MONO}}>{devisClient.length}</div><div style={{fontSize:10,color:COLORS.inkSoft}}>Devis</div></div>
+              <div style={{background:COLORS.successBg,borderRadius:10,padding:"9px 8px",textAlign:"center"}}><div style={{fontSize:16,fontWeight:800,color:COLORS.success,fontFamily:FONT_MONO}}>{facturesClient.length}</div><div style={{fontSize:10,color:COLORS.inkSoft}}>Factures</div></div>
+              <div style={{background:COLORS.violetBg,borderRadius:10,padding:"9px 8px",textAlign:"center"}}><div style={{fontSize:16,fontWeight:800,color:COLORS.violet,fontFamily:FONT_MONO}}>{chantiersClient.length}</div><div style={{fontSize:10,color:COLORS.inkSoft}}>Chantiers</div></div>
+            </div>
+
+            {chantiersClient.length>0&&<div style={{marginBottom:10}}>
+              <div style={{fontSize:10.5,fontWeight:700,color:COLORS.inkSoft,textTransform:"uppercase",letterSpacing:0.4,marginBottom:6}}>Chantiers</div>
+              {chantiersClient.map(ch=><div key={ch.id} style={{fontSize:12.5,color:COLORS.ink,padding:"6px 0",borderBottom:`1px solid ${COLORS.lineSoft}`}}>{ch.nom}</div>)}
+            </div>}
+
+            <div style={{display:"flex",gap:8}}>
+              <button onClick={(e)=>{e.stopPropagation();openEdit(c);}} style={btnS}>Modifier</button>
+              <button onClick={(e)=>{e.stopPropagation();if(window.confirm("Supprimer ce client ?"))del(c.id);}} style={btnD}>Supprimer</button>
+            </div>
           </div>}
         </div>;
       })}
@@ -624,6 +665,17 @@ function Clients({data,api}){
       <IR label="Adresse"><input style={inp} value={form.adresse} onChange={e=>setForm(f=>({...f,adresse:e.target.value}))}/></IR>
       <IR label="Notes"><textarea style={{...inp,minHeight:60,resize:"vertical"}} value={form.notes} onChange={e=>setForm(f=>({...f,notes:e.target.value}))}/></IR>
       <div style={{display:"flex",gap:10}}><button style={btnP} onClick={add}>Ajouter</button><button style={btnS} onClick={()=>setShowForm(false)}>Annuler</button></div>
+    </Modal>}
+    {editing&&<Modal title={`Modifier ${editing.nom}`} onClose={()=>setEditing(null)}>
+      <IR label="Nom *"><input style={inp} value={editForm.nom} onChange={e=>setEditForm(f=>({...f,nom:e.target.value}))} placeholder="M. Dupont"/></IR>
+      <IR label="Société"><input style={inp} value={editForm.entreprise} onChange={e=>setEditForm(f=>({...f,entreprise:e.target.value}))} placeholder="SCI, SARL…"/></IR>
+      <div style={{display:"flex",gap:10}}>
+        <IR label="Téléphone"><input style={inp} value={editForm.tel} onChange={e=>setEditForm(f=>({...f,tel:e.target.value}))} placeholder="06 12 34 56 78"/></IR>
+        <IR label="Email"><input style={inp} value={editForm.email} onChange={e=>setEditForm(f=>({...f,email:e.target.value}))} placeholder="client@email.fr"/></IR>
+      </div>
+      <IR label="Adresse"><input style={inp} value={editForm.adresse} onChange={e=>setEditForm(f=>({...f,adresse:e.target.value}))}/></IR>
+      <IR label="Notes"><textarea style={{...inp,minHeight:60,resize:"vertical"}} value={editForm.notes} onChange={e=>setEditForm(f=>({...f,notes:e.target.value}))}/></IR>
+      <div style={{display:"flex",gap:10}}><button style={btnP} onClick={saveEdit}>Enregistrer</button><button style={btnS} onClick={()=>setEditing(null)}>Annuler</button></div>
     </Modal>}
   </div>;
 }
@@ -677,7 +729,20 @@ function Temps({data,api}){
 function Parametres({data,api}){
   const [form,setForm]=useState(data.entreprise||{nom:"",siret:"",adresse:"",cp:"",ville:"",tel:"",email:"",tva:""});
   const [saved,setSaved]=useState(false);
+  const [syncCal,setSyncCal]=useState(isCalendarSyncEnabled());
+  const [calBusy,setCalBusy]=useState(false);
   const save=()=>{api.sauverEntreprise(form);setSaved(true);setTimeout(()=>setSaved(false),2000);};
+  const toggleSyncCal=async()=>{
+    if (!CalendarPlugin) { alert("La synchronisation avec l'agenda du téléphone n'est disponible que dans l'application mobile installée (pas sur le web)."); return; }
+    if (syncCal) { localStorage.setItem(CALENDAR_SYNC_KEY,"0"); setSyncCal(false); return; }
+    setCalBusy(true);
+    try {
+      const res = await CalendarPlugin.requestFullCalendarAccess();
+      if (res && res.result === "granted") { localStorage.setItem(CALENDAR_SYNC_KEY,"1"); setSyncCal(true); }
+      else { alert("Accès à l'agenda refusé. Active-le dans les réglages du téléphone si tu changes d'avis."); }
+    } catch (e) { alert("Impossible d'accéder à l'agenda du téléphone."); }
+    setCalBusy(false);
+  };
   return <div style={{fontFamily:FONT_BODY}}>
     <div style={{display:"flex",alignItems:"center",gap:8,fontWeight:700,fontSize:19,color:COLORS.ink,marginBottom:16,fontFamily:FONT_DISPLAY}}><Icon name="settings" size={18} color={COLORS.ink}/>Paramètres entreprise</div>
     <div style={{background:"#fff",border:`1px solid ${COLORS.line}`,borderRadius:14,padding:18,marginBottom:14}}>
@@ -687,6 +752,16 @@ function Parametres({data,api}){
         <button style={{...btnP,background:saved?COLORS.success:COLORS.accent}} onClick={save}>{saved?"Enregistré !":"Enregistrer"}</button>
         <button style={btnD} onClick={()=>{if(window.confirm("Remettre toutes les données à zéro ?")){localStorage.removeItem("gestchantier_data");window.location.reload();}}}>Réinitialiser</button>
       </div>
+    </div>
+    <div style={{background:"#fff",border:`1px solid ${COLORS.line}`,borderRadius:14,padding:18,marginBottom:14}}>
+      <div style={{display:"flex",alignItems:"center",gap:8,fontWeight:700,fontSize:14,color:COLORS.ink,marginBottom:6}}><Icon name="calendar" size={16} color={COLORS.ink}/>Agenda du téléphone</div>
+      <div style={{fontSize:12.5,color:COLORS.inkSoft,marginBottom:14,lineHeight:1.5}}>Ajoute automatiquement tes rendez-vous Gest'Chantier dans l'agenda natif de ton téléphone.</div>
+      <label style={{display:"flex",alignItems:"center",justifyContent:"space-between",cursor:calBusy?"default":"pointer"}}>
+        <span style={{fontSize:13.5,fontWeight:600,color:COLORS.ink}}>Synchroniser mes rendez-vous</span>
+        <span onClick={calBusy?undefined:toggleSyncCal} style={{width:44,height:26,borderRadius:20,background:syncCal?COLORS.accent:COLORS.line,position:"relative",transition:"background 0.15s",flexShrink:0,opacity:calBusy?0.6:1}}>
+          <span style={{position:"absolute",top:3,left:syncCal?21:3,width:20,height:20,borderRadius:"50%",background:"#fff",transition:"left 0.15s",boxShadow:"0 1px 3px rgba(0,0,0,0.3)"}}/>
+        </span>
+      </label>
     </div>
     <div style={{background:COLORS.pendingBg,border:`1px solid ${COLORS.pending}30`,borderRadius:14,padding:15}}>
       <div style={{fontWeight:700,color:COLORS.pending,marginBottom:7,fontSize:13.5}}>Facturation électronique obligatoire (sept. 2026)</div>
@@ -783,6 +858,11 @@ const Biometric = (typeof window !== "undefined" && window.Capacitor && window.C
 const BIOMETRIC_SERVER = "gestchantier.app";
 const REMEMBER_KEY = "gc_remember_email";
 const BIOMETRIC_ENABLED_KEY = "gc_biometric_enabled";
+
+// ── AGENDA NATIF (synchronisation calendrier téléphone) ────────────────────────
+const CalendarPlugin = (typeof window !== "undefined" && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorCalendar) || null;
+const CALENDAR_SYNC_KEY = "gc_sync_calendar";
+const isCalendarSyncEnabled = () => localStorage.getItem(CALENDAR_SYNC_KEY) === "1";
 
 function Login({ onLogin }) {
   const [mode, setMode] = useState("login");
@@ -988,11 +1068,11 @@ function MainApp({ session, onLogout }){
   }, []);
 
   const ajouterItem = async (table, item) => {
-    if (!supabaseClient) return;
+    if (!supabaseClient) return null;
     const payload = {...versDB(item, table), user_id: session.user.id};
     const { data: row, error } = await supabaseClient.from(table).insert(payload).select().single();
-    if (!error && row) setData(d => ({...d, [table]: [...d[table], depuisDB(row)]}));
-    else if (error) alert("Erreur : " + error.message);
+    if (!error && row) { const clean = depuisDB(row); setData(d => ({...d, [table]: [...d[table], clean]})); return clean; }
+    else if (error) { alert("Erreur : " + error.message); return null; }
   };
   const supprimerItem = async (table, id) => {
     if (!supabaseClient) return;
