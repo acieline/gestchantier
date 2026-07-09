@@ -12,7 +12,9 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
+html,body{overflow-x:hidden;max-width:100vw;}
 body{font-family:'Inter',system-ui,sans-serif;background:#F5F3EE;}
+img,select,input,button,textarea{max-width:100%;}
 select{-webkit-appearance:none;appearance:none;}
 </style>
 </head>
@@ -266,14 +268,19 @@ function LignesEditor({lignes,setLignes}){
     <div style={{fontSize:11,fontWeight:700,color:COLORS.inkSoft,marginBottom:8,letterSpacing:0.4,textTransform:"uppercase"}}>Prestations</div>
     {lignes.map((l,i)=><div key={i} style={{border:`1px solid ${COLORS.line}`,borderRadius:8,padding:8,marginBottom:8}}>
       <button type="button" onClick={()=>openDesc(i)} style={{...inp,width:"100%",textAlign:"left",background:"#fff",cursor:"pointer",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",color:l.desc?COLORS.ink:COLORS.inkSoft,marginBottom:6}}>{l.desc||"Description…"}</button>
-      <div style={{display:"flex",gap:6,alignItems:"center"}}>
-        <input style={{...inp,width:48,flex:"none",padding:"8px 6px"}} type="number" placeholder="Qté" value={l.qte} onChange={e=>upd(i,"qte",e.target.value)}/>
-        <input style={{...inp,width:68,flex:"none",padding:"8px 6px"}} type="number" placeholder="P.U.€" value={l.pu===0||l.pu===""?"":l.pu} onChange={e=>upd(i,"pu",e.target.value)}/>
-        <select style={{...inp,width:62,flex:"none",padding:"8px 4px"}} value={l.tva===undefined?20:l.tva} onChange={e=>upd(i,"tva",Number(e.target.value))}>
+      <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap",marginBottom:6}}>
+        <input style={{...inp,width:50,flex:"1 1 50px",minWidth:44,padding:"8px 6px"}} type="number" placeholder="Qté" value={l.qte} onChange={e=>upd(i,"qte",e.target.value)}/>
+        <input style={{...inp,width:70,flex:"1 1 70px",minWidth:60,padding:"8px 6px"}} type="number" placeholder="P.U.€" value={l.pu===0||l.pu===""?"":l.pu} onChange={e=>upd(i,"pu",e.target.value)}/>
+        <select style={{...inp,width:64,flex:"1 1 64px",minWidth:58,padding:"8px 4px"}} value={l.tva===undefined?20:l.tva} onChange={e=>upd(i,"tva",Number(e.target.value))}>
           {TAUX_TVA_OPTIONS.map(t=><option key={t} value={t}>{t}%</option>)}
         </select>
-        <span style={{fontSize:12.5,fontWeight:700,color:COLORS.blueprint,marginLeft:"auto",fontFamily:FONT_MONO,whiteSpace:"nowrap"}}>{((Number(l.qte)||0)*(Number(l.pu)||0)).toLocaleString("fr-FR")} €</span>
-        <button onClick={()=>del(i)} style={{background:"none",border:"none",cursor:"pointer",color:COLORS.danger,fontSize:18,flexShrink:0}}>×</button>
+      </div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <span style={{fontSize:11,color:COLORS.inkSoft}}>Sous-total</span>
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <span style={{fontSize:12.5,fontWeight:700,color:COLORS.blueprint,fontFamily:FONT_MONO,whiteSpace:"nowrap"}}>{((Number(l.qte)||0)*(Number(l.pu)||0)).toLocaleString("fr-FR")} €</span>
+          <button onClick={()=>del(i)} style={{background:"none",border:"none",cursor:"pointer",color:COLORS.danger,fontSize:18,flexShrink:0,lineHeight:1}}>×</button>
+        </div>
       </div>
     </div>)}
     <button onClick={add} style={{...btnS,marginBottom:12}}>+ Ligne</button>
@@ -1164,21 +1171,23 @@ function MainApp({ session, onLogout }){
   ];
   const current=tabs.find(t=>t.id===tab);
   return <div style={{minHeight:"100vh",background:COLORS.bg,fontFamily:FONT_BODY,display:"flex",flexDirection:"column"}}>
-    <div style={{background:COLORS.ink,padding:"calc(12px + env(safe-area-inset-top)) 18px 0",flexShrink:0}}>
-      <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:10}}>
-        <img src={LOGO_URI} style={{width:32,height:32,borderRadius:9,flexShrink:0,objectFit:"cover"}}/>
-        <div style={{flex:1}}>
-          <div style={{color:"#fff",fontWeight:700,fontSize:17,fontFamily:FONT_DISPLAY,letterSpacing:0.2}}>Gest'Chantier</div>
+    <div style={{background:COLORS.ink,paddingTop:"env(safe-area-inset-top)",flexShrink:0}}>
+      <div style={{maxWidth:760,margin:"0 auto",padding:"12px 18px 0"}}>
+        <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:10}}>
+          <img src={LOGO_URI} style={{width:32,height:32,borderRadius:9,flexShrink:0,objectFit:"cover"}}/>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{color:"#fff",fontWeight:700,fontSize:17,fontFamily:FONT_DISPLAY,letterSpacing:0.2}}>Gest'Chantier</div>
+          </div>
+          <div style={{color:"rgba(255,255,255,0.5)",fontSize:11.5,fontFamily:FONT_MONO,textAlign:"right",flexShrink:0}}>{new Date().toLocaleDateString("fr-FR",{weekday:"short",day:"numeric",month:"short"})}</div>
+          <button onClick={onLogout} style={{background:"rgba(255,255,255,0.1)",color:"#fff",border:"1px solid rgba(255,255,255,0.2)",borderRadius:8,padding:"6px 12px",fontSize:11.5,fontWeight:600,cursor:"pointer",flexShrink:0,fontFamily:FONT_BODY}}>Déconnexion</button>
         </div>
-        <div style={{color:"rgba(255,255,255,0.5)",fontSize:11.5,fontFamily:FONT_MONO,textAlign:"right"}}>{new Date().toLocaleDateString("fr-FR",{weekday:"short",day:"numeric",month:"short"})}</div>
-        <button onClick={onLogout} style={{background:"rgba(255,255,255,0.1)",color:"#fff",border:"1px solid rgba(255,255,255,0.2)",borderRadius:8,padding:"6px 12px",fontSize:11.5,fontWeight:600,cursor:"pointer",flexShrink:0,fontFamily:FONT_BODY}}>Déconnexion</button>
-      </div>
-      <div style={{display:"flex",overflowX:"auto",whiteSpace:"nowrap",gap:2}}>
-        {tabs.map(t=><button key={t.id} onClick={()=>setTab(t.id)} style={{padding:"6px 11px 9px",border:"none",background:"none",cursor:"pointer",borderBottom:tab===t.id?`2px solid ${COLORS.accent}`:"2px solid transparent",display:"inline-flex",flexDirection:"column",alignItems:"center",gap:4,flexShrink:0,minWidth:52,position:"relative"}}>
-          <Icon name={t.icon} size={17} color={tab===t.id?COLORS.accent:"rgba(255,255,255,0.5)"}/>
-          <span style={{fontSize:9.5,fontWeight:tab===t.id?700:500,color:tab===t.id?COLORS.accent:"rgba(255,255,255,0.5)",fontFamily:FONT_BODY}}>{t.title}</span>
-          {t.count>0&&<span style={{position:"absolute",top:2,right:6,background:COLORS.danger,color:"#fff",borderRadius:20,padding:"0 5px",fontSize:9,fontWeight:700,lineHeight:"13px"}}>{t.count}</span>}
-        </button>)}
+        <div style={{display:"flex",overflowX:"auto",whiteSpace:"nowrap",gap:2}}>
+          {tabs.map(t=><button key={t.id} onClick={()=>setTab(t.id)} style={{padding:"6px 11px 9px",border:"none",background:"none",cursor:"pointer",borderBottom:tab===t.id?`2px solid ${COLORS.accent}`:"2px solid transparent",display:"inline-flex",flexDirection:"column",alignItems:"center",gap:4,flexShrink:0,minWidth:52,position:"relative"}}>
+            <Icon name={t.icon} size={17} color={tab===t.id?COLORS.accent:"rgba(255,255,255,0.5)"}/>
+            <span style={{fontSize:9.5,fontWeight:tab===t.id?700:500,color:tab===t.id?COLORS.accent:"rgba(255,255,255,0.5)",fontFamily:FONT_BODY}}>{t.title}</span>
+            {t.count>0&&<span style={{position:"absolute",top:2,right:6,background:COLORS.danger,color:"#fff",borderRadius:20,padding:"0 5px",fontSize:9,fontWeight:700,lineHeight:"13px"}}>{t.count}</span>}
+          </button>)}
+        </div>
       </div>
     </div>
     <div style={{flex:1,overflowY:"auto"}}>
