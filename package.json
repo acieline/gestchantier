@@ -10,7 +10,6 @@
     "@capacitor/cli": "^7.0.0",
     "@capacitor/core": "^7.0.0",
     "@capacitor/ios": "^7.0.0",
-    "@capgo/capacitor-calendar": "^7.0.0",
     "@capgo/capacitor-native-biometric": "^7.6.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
