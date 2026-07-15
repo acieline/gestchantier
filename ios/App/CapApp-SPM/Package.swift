@@ -11,8 +11,7 @@ let package = Package(
             targets: ["CapApp-SPM"])
     ],
     dependencies: [
-        .package(url: "https://github.com/ionic-team/capacitor-swift-pm.git", .upToNextMajor(from: "7.0.0")),
-        .package(name: "CapgoCapacitorCalendar", path: "../../../node_modules/@capgo/capacitor-calendar"),
+        .package(url: "https://github.com/ionic-team/capacitor-swift-pm.git", exact: "7.6.8"),
         .package(name: "CapgoCapacitorNativeBiometric", path: "../../../node_modules/@capgo/capacitor-native-biometric")
     ],
     targets: [
@@ -21,7 +20,6 @@ let package = Package(
             dependencies: [
                 .product(name: "Capacitor", package: "capacitor-swift-pm"),
                 .product(name: "Cordova", package: "capacitor-swift-pm"),
-                .product(name: "CapgoCapacitorCalendar", package: "CapgoCapacitorCalendar"),
                 .product(name: "CapgoCapacitorNativeBiometric", package: "CapgoCapacitorNativeBiometric")
             ]
         )
