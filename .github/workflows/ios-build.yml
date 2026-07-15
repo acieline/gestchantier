@@ -23,7 +23,7 @@ jobs:
         run: npm run build
 
       - name: Sync Capacitor iOS
-        run: npx cap sync ios
+        run: npx --yes @capacitor/cli sync ios
 
       - name: Install Apple certificate and provisioning profile
         env:
