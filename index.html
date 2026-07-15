@@ -169,8 +169,7 @@ function IR({label,children}){return <div style={{marginBottom:12}}><label style
 function ApercuDoc({doc,type,entreprise,onClose}){
   const {ht,tva,ttc,detail}=calcTotaux(doc.lignes);
   const imprimer=()=>{
-    const w=window.open('','_blank');
-    w.document.write(`<html><head><title>${doc.numero}</title><style>
+    const htmlContent = `<html><head><title>${doc.numero}</title><style>
       body{font-family:Arial,sans-serif;color:${COLORS.ink};padding:40px;max-width:800px;margin:0 auto}
       .row{display:flex;justify-content:space-between;margin-bottom:40px}
       .titre{font-size:32px;font-weight:800;color:${COLORS.blueprint};text-align:right}
@@ -213,7 +212,38 @@ function ApercuDoc({doc,type,entreprise,onClose}){
         <button onclick="window.print()" style="background:${COLORS.accent};color:white;border:none;padding:10px 24px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">Imprimer / PDF</button>
         <button onclick="window.close()" style="background:${COLORS.lineSoft};color:${COLORS.inkSoft};border:1px solid ${COLORS.line};padding:10px 24px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">Fermer</button>
       </div>
-    </body></html>`);
+    </body></html>`;
+
+    const isNative = typeof window.Capacitor !== "undefined" && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform();
+
+    if (isNative) {
+      // window.open()/window.print() ne fonctionnent pas dans l'app native (WKWebView).
+      // On utilise le partage natif du téléphone à la place (imprimer, envoyer par mail, enregistrer...).
+      (async () => {
+        try {
+          const blob = new Blob([htmlContent], { type: "text/html" });
+          const file = new File([blob], `${doc.numero}.html`, { type: "text/html" });
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({ files: [file], title: doc.numero });
+            return;
+          }
+          if (navigator.share) {
+            await navigator.share({
+              title: `${type === "facture" ? "Facture" : "Devis"} ${doc.numero}`,
+              text: `${type === "facture" ? "Facture" : "Devis"} ${doc.numero} — ${doc.client} — ${ttc.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} € TTC`,
+            });
+            return;
+          }
+          alert("Le partage n'est pas disponible sur cet appareil.");
+        } catch (e) {
+          if (e && e.name !== "AbortError") alert("Impossible de partager le document.");
+        }
+      })();
+      return;
+    }
+
+    const w = window.open('', '_blank');
+    w.document.write(htmlContent);
     w.document.close(); w.focus();
   };
   return <Modal title={`${type==="facture"?"Facture":"Devis"} — ${doc.numero}`} onClose={onClose} wide>
@@ -448,10 +478,14 @@ function Taches({data,api}){
 // ── CHANTIERS ─────────────────────────────────────────────────────────────────
 function Chantiers({data,api}){
   const [showForm,setShowForm]=useState(false);
+  const [editing,setEditing]=useState(null);
   const [form,setForm]=useState({nom:"",client:"",statut:"en_cours",avancement:0,debut:"",fin:"",notes:""});
+  const [editForm,setEditForm]=useState(null);
   const add=()=>{if(!form.nom.trim())return;api.ajouterItem("chantiers",{...form,avancement:Number(form.avancement)});setForm({nom:"",client:"",statut:"en_cours",avancement:0,debut:"",fin:"",notes:""});setShowForm(false);};
-  const del=(id)=>api.supprimerItem("chantiers",id);
+  const del=(id)=>{if(window.confirm("Supprimer ce chantier ?"))api.supprimerItem("chantiers",id);};
   const updStatut=(id,statut)=>api.modifierItem("chantiers",id,{statut});
+  const openEdit=(c)=>{setEditForm({nom:c.nom||"",client:c.client||"",statut:c.statut,avancement:c.avancement||0,debut:c.debut||"",fin:c.fin||"",notes:c.notes||""});setEditing(c);};
+  const saveEdit=()=>{if(!editForm.nom.trim())return;api.modifierItem("chantiers",editing.id,{...editForm,avancement:Number(editForm.avancement)});setEditing(null);setEditForm(null);};
   return <div style={{fontFamily:FONT_BODY}}>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
       <div><span style={{fontWeight:700,fontSize:19,color:COLORS.ink,fontFamily:FONT_DISPLAY}}>Chantiers</span><span style={{marginLeft:10,background:COLORS.blueprintBg,color:COLORS.blueprint,borderRadius:20,padding:"2px 12px",fontSize:12.5,fontWeight:600}}>{data.chantiers.length}</span></div>
@@ -460,18 +494,21 @@ function Chantiers({data,api}){
     <div style={{display:"flex",flexDirection:"column",gap:12}}>
       {data.chantiers.map(c=><div key={c.id} style={{background:"#fff",border:`1px solid ${COLORS.line}`,borderRadius:14,padding:16}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
-          <div><div style={{fontWeight:700,fontSize:15.5,color:COLORS.ink}}>{c.nom}</div><div style={{color:COLORS.inkSoft,fontSize:12.5,marginTop:2}}>{c.client}</div></div>
+          <div style={{cursor:"pointer"}} onClick={()=>openEdit(c)}><div style={{fontWeight:700,fontSize:15.5,color:COLORS.ink}}>{c.nom}</div><div style={{color:COLORS.inkSoft,fontSize:12.5,marginTop:2}}>{c.client}</div></div>
           <div style={{display:"flex",gap:8,alignItems:"center"}}>
             <select value={c.statut} onChange={e=>updStatut(c.id,e.target.value)} style={{border:"none",background:STATUT_CHANTIER[c.statut]?.bg,color:STATUT_CHANTIER[c.statut]?.color,borderRadius:6,padding:"3px 8px",fontWeight:600,fontSize:11.5,cursor:"pointer",fontFamily:FONT_BODY}}>{Object.entries(STATUT_CHANTIER).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}</select>
-            <button onClick={()=>del(c.id)} style={btnD}>Suppr.</button>
           </div>
         </div>
         <div style={{margin:"10px 0"}}>
           <div style={{display:"flex",justifyContent:"space-between",fontSize:11.5,color:COLORS.inkSoft,marginBottom:4}}><span>Avancement</span><span style={{fontWeight:700,color:COLORS.blueprint,fontFamily:FONT_MONO}}>{c.avancement}%</span></div>
           <div style={{background:COLORS.lineSoft,borderRadius:8,height:6,overflow:"hidden"}}><div style={{height:"100%",width:`${c.avancement}%`,background:c.avancement===100?COLORS.success:COLORS.blueprint,borderRadius:8}}/></div>
         </div>
-        <div style={{display:"flex",gap:16,fontSize:11.5,color:COLORS.inkSoft,fontFamily:FONT_MONO}}>{c.debut&&<span>Début {new Date(c.debut+"T12:00:00").toLocaleDateString("fr-FR")}</span>}{c.fin&&<span>Fin {new Date(c.fin+"T12:00:00").toLocaleDateString("fr-FR")}</span>}</div>
-        {c.notes&&<div style={{marginTop:8,padding:"8px 12px",background:COLORS.lineSoft,borderRadius:8,fontSize:12.5,color:COLORS.ink,borderLeft:`3px solid ${COLORS.line}`}}>{c.notes}</div>}
+        <div style={{display:"flex",gap:16,fontSize:11.5,color:COLORS.inkSoft,fontFamily:FONT_MONO,marginBottom:c.notes?8:0}}>{c.debut&&<span>Début {new Date(c.debut+"T12:00:00").toLocaleDateString("fr-FR")}</span>}{c.fin&&<span>Fin {new Date(c.fin+"T12:00:00").toLocaleDateString("fr-FR")}</span>}</div>
+        {c.notes&&<div style={{padding:"8px 12px",background:COLORS.lineSoft,borderRadius:8,fontSize:12.5,color:COLORS.ink,borderLeft:`3px solid ${COLORS.line}`,marginBottom:10}}>{c.notes}</div>}
+        <div style={{display:"flex",gap:8}}>
+          <button style={btnS} onClick={()=>openEdit(c)}>Modifier</button>
+          <button onClick={()=>del(c.id)} style={btnD}>Suppr.</button>
+        </div>
       </div>)}
     </div>
     {showForm&&<Modal title="Nouveau chantier" onClose={()=>setShowForm(false)}>
@@ -482,6 +519,15 @@ function Chantiers({data,api}){
       <IR label="Avancement (%)"><input type="number" min="0" max="100" style={inp} value={form.avancement} onChange={e=>setForm(f=>({...f,avancement:e.target.value}))}/></IR>
       <IR label="Notes"><textarea style={{...inp,minHeight:60,resize:"vertical"}} value={form.notes} onChange={e=>setForm(f=>({...f,notes:e.target.value}))}/></IR>
       <div style={{display:"flex",gap:10}}><button style={btnP} onClick={add}>Ajouter</button><button style={btnS} onClick={()=>setShowForm(false)}>Annuler</button></div>
+    </Modal>}
+    {editing&&editForm&&<Modal title={`Modifier ${editing.nom}`} onClose={()=>{setEditing(null);setEditForm(null);}}>
+      <IR label="Nom *"><input style={inp} value={editForm.nom} onChange={e=>setEditForm(f=>({...f,nom:e.target.value}))} placeholder="Ex : Villa Dupont – Rénovation"/></IR>
+      <IR label="Client"><input style={inp} value={editForm.client} onChange={e=>setEditForm(f=>({...f,client:e.target.value}))} placeholder="Nom du client"/></IR>
+      <div style={{display:"flex",gap:10}}><IR label="Début"><input type="date" style={inp} value={editForm.debut} onChange={e=>setEditForm(f=>({...f,debut:e.target.value}))}/></IR><IR label="Fin prévue"><input type="date" style={inp} value={editForm.fin} onChange={e=>setEditForm(f=>({...f,fin:e.target.value}))}/></IR></div>
+      <IR label="Statut"><select style={inp} value={editForm.statut} onChange={e=>setEditForm(f=>({...f,statut:e.target.value}))}>{Object.entries(STATUT_CHANTIER).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}</select></IR>
+      <IR label="Avancement (%)"><input type="number" min="0" max="100" style={inp} value={editForm.avancement} onChange={e=>setEditForm(f=>({...f,avancement:e.target.value}))}/></IR>
+      <IR label="Notes"><textarea style={{...inp,minHeight:60,resize:"vertical"}} value={editForm.notes} onChange={e=>setEditForm(f=>({...f,notes:e.target.value}))}/></IR>
+      <div style={{display:"flex",gap:10}}><button style={btnP} onClick={saveEdit}>Enregistrer</button><button style={btnS} onClick={()=>{setEditing(null);setEditForm(null);}}>Annuler</button></div>
     </Modal>}
   </div>;
 }
@@ -531,6 +577,12 @@ function Devis({data,api}){
       </div>;})}
     </div>
     {showForm&&<Modal title="Nouveau devis" onClose={()=>setShowForm(false)} wide>
+      {(data.clients||[]).length>0&&<IR label="Client existant (facultatif)">
+        <select style={inp} value="" onChange={e=>{const c=(data.clients||[]).find(cl=>cl.id===e.target.value);if(c)setForm(f=>({...f,client:c.nom,adresseClient:c.adresse||""}));}}>
+          <option value="">— Sélectionner ou saisir manuellement ci-dessous —</option>
+          {(data.clients||[]).map(c=><option key={c.id} value={c.id}>{c.nom}{c.entreprise?" ("+c.entreprise+")":""}</option>)}
+        </select>
+      </IR>}
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
         <IR label="Client *"><input style={inp} value={form.client} onChange={e=>setForm(f=>({...f,client:e.target.value}))} placeholder="Nom du client"/></IR>
         <IR label="Travaux"><input style={inp} value={form.travaux} onChange={e=>setForm(f=>({...f,travaux:e.target.value}))} placeholder="Ex : Rénovation salle de bain"/></IR>
@@ -545,6 +597,12 @@ function Devis({data,api}){
       <div style={{display:"flex",gap:10,marginTop:8}}><button style={btnP} onClick={add}>Créer le devis</button><button style={btnS} onClick={()=>setShowForm(false)}>Annuler</button></div>
     </Modal>}
     {editing&&editForm&&<Modal title={`Modifier ${editing.numero}`} onClose={()=>{setEditing(null);setEditForm(null);}} wide>
+      {(data.clients||[]).length>0&&<IR label="Client existant (facultatif)">
+        <select style={inp} value="" onChange={e=>{const c=(data.clients||[]).find(cl=>cl.id===e.target.value);if(c)setEditForm(f=>({...f,client:c.nom,adresseClient:c.adresse||""}));}}>
+          <option value="">— Sélectionner ou saisir manuellement ci-dessous —</option>
+          {(data.clients||[]).map(c=><option key={c.id} value={c.id}>{c.nom}{c.entreprise?" ("+c.entreprise+")":""}</option>)}
+        </select>
+      </IR>}
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
         <IR label="Client *"><input style={inp} value={editForm.client} onChange={e=>setEditForm(f=>({...f,client:e.target.value}))} placeholder="Nom du client"/></IR>
         <IR label="Travaux"><input style={inp} value={editForm.travaux} onChange={e=>setEditForm(f=>({...f,travaux:e.target.value}))} placeholder="Ex : Rénovation salle de bain"/></IR>
@@ -607,6 +665,12 @@ function Factures({data,api}){
       {data.factures.length===0&&<div style={{textAlign:"center",color:COLORS.inkSoft,padding:28,fontSize:13.5}}>Aucune facture — convertissez un devis accepté !</div>}
     </div>
     {showForm&&<Modal title="Nouvelle facture" onClose={()=>setShowForm(false)} wide>
+      {(data.clients||[]).length>0&&<IR label="Client existant (facultatif)">
+        <select style={inp} value="" onChange={e=>{const c=(data.clients||[]).find(cl=>cl.id===e.target.value);if(c)setForm(f=>({...f,client:c.nom,adresseClient:c.adresse||""}));}}>
+          <option value="">— Sélectionner ou saisir manuellement ci-dessous —</option>
+          {(data.clients||[]).map(c=><option key={c.id} value={c.id}>{c.nom}{c.entreprise?" ("+c.entreprise+")":""}</option>)}
+        </select>
+      </IR>}
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
         <IR label="Client *"><input style={inp} value={form.client} onChange={e=>setForm(f=>({...f,client:e.target.value}))} placeholder="Nom du client"/></IR>
         <IR label="Travaux"><input style={inp} value={form.travaux} onChange={e=>setForm(f=>({...f,travaux:e.target.value}))} placeholder="Description"/></IR>
@@ -1055,9 +1119,8 @@ function Login({ onLogin }) {
     <div style={{height:"100vh",overflowY:"auto",background:COLORS.ink,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:FONT_BODY,padding:20,paddingTop:"calc(20px + env(safe-area-inset-top))",paddingBottom:"calc(20px + env(safe-area-inset-bottom))"}}>
       <div style={{background:"#fff",borderRadius:20,padding:36,width:"100%",maxWidth:420,boxShadow:"0 20px 60px rgba(0,0,0,0.35)"}}>
         <div style={{textAlign:"center",marginBottom:28}}>
-          <img src={LOGO_URI} style={{width:52,height:52,borderRadius:16,margin:"0 auto 12px",display:"block",objectFit:"cover"}}/>
-          <div style={{fontWeight:700,fontSize:24,color:COLORS.ink,fontFamily:FONT_DISPLAY}}>Gest'Chantier</div>
-          <div style={{color:COLORS.inkSoft,fontSize:14,marginTop:4}}>Gestion pour artisans & BTP</div>
+          <img src={LOGO_URI} style={{width:88,height:88,borderRadius:22,margin:"0 auto 14px",display:"block",objectFit:"cover"}}/>
+          <div style={{fontWeight:700,fontSize:26,color:COLORS.ink,fontFamily:FONT_DISPLAY}}><span style={{color:COLORS.accent}}>Gest'</span>Chantier</div>
         </div>
 
         {mode === "login" && bioAvailable && bioEnabled && <>
